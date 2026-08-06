@@ -668,7 +668,7 @@
                 <button type="button" class="chip" data-budget="over30" role="radio" aria-checked="false">30元以上</button>
               </div>
             </div>
-            <div class="filter-block filter-block--span2">
+            <div class="filter-block filter-block--span2" id="conditionalExtras" hidden>
               <div class="cond-block" id="homeCookExtras" hidden>
                 <div class="filter-block" style="margin-bottom:0.55rem">
                   <span class="filter-label" id="labelEquip">厨具</span>
@@ -1786,11 +1786,11 @@
     }
 
     function hasArrangedBefore() {
-      return localStorage.getItem(STORAGE.hasArranged) === "1";
+      return localStorage.getItem(STORAGE.hasArranged) === todayKey();
     }
 
     function markArranged() {
-      localStorage.setItem(STORAGE.hasArranged, "1");
+      localStorage.setItem(STORAGE.hasArranged, todayKey());
     }
 
     function pushRecommendHistory(entry) {
@@ -1846,7 +1846,68 @@
     var HUNGER_LABEL = { low: "没什么胃口", normal: "正常", starving: "非常饿" };
     var BUDGET_LABEL = { any: "不限制", under15: "15元以内", "15to30": "15～30元", over30: "30元以上" };
 
-    /** 硬筛选：忌口/过敏、蛋奶素、明确用餐方式、厨具、预算上限、餐次 */
+    /**
+     * 规范化菜品饮食标记（白名单制）
+     * - 蛋奶素必须 goals 含 ovo_lacto 且 dietFlags.ovoLactoSuitable === true
+     * - 综合/套餐/拼盘/可自选等成分不确定的菜默认不进蛋奶素
+     */
+    function normalizeDishes() {
+      var meatProt = { "鸡肉": 1, "猪肉": 1, "牛肉": 1, "虾": 1, "鱼": 1 };
+      var uncertainRe = /套餐|拼盘|自选|关东煮|麻辣烫|拌饭|例汤|小炒|火锅/;
+      DISHES.forEach(function (d) {
+        var allergens = d.allergens || [];
+        var containsMeat =
+          !!meatProt[d.protein] ||
+          d.protein === "综合" ||
+          allergens.indexOf("pork") !== -1 ||
+          allergens.indexOf("beef") !== -1;
+        var containsSeafood =
+          d.protein === "虾" ||
+          d.protein === "鱼" ||
+          allergens.indexOf("seafood") !== -1;
+        var uncertain =
+          uncertainRe.test(d.name || "") ||
+          d.protein === "综合" ||
+          d.protein === "蔬菜" && /汤|套餐/.test(d.name || "");
+
+        var claimed = (d.goals || []).indexOf("ovo_lacto") !== -1;
+        var ovoOk = claimed && !containsMeat && !containsSeafood && !uncertain;
+
+        if (d.dietFlags && typeof d.dietFlags.ovoLactoSuitable === "boolean") {
+          // 显式字段优先，但仍禁止肉/海鲜
+          ovoOk = d.dietFlags.ovoLactoSuitable === true &&
+            d.dietFlags.containsMeat !== true &&
+            d.dietFlags.containsSeafood !== true &&
+            !containsMeat && !containsSeafood;
+          if (typeof d.dietFlags.containsMeat === "boolean") containsMeat = d.dietFlags.containsMeat || containsMeat;
+          if (typeof d.dietFlags.containsSeafood === "boolean") containsSeafood = d.dietFlags.containsSeafood || containsSeafood;
+        }
+
+        d.dietFlags = {
+          containsMeat: !!containsMeat,
+          containsSeafood: !!containsSeafood,
+          ovoLactoSuitable: !!ovoOk
+        };
+
+        // 同步 goals 白名单：不适合则移除 ovo_lacto 标签
+        if (!d.dietFlags.ovoLactoSuitable) {
+          d.goals = (d.goals || []).filter(function (g) { return g !== "ovo_lacto"; });
+        } else if ((d.goals || []).indexOf("ovo_lacto") === -1) {
+          d.goals = (d.goals || []).concat(["ovo_lacto"]);
+        }
+      });
+    }
+    normalizeDishes();
+
+    function isOvoLactoSuitable(dish) {
+      if (!dish) return false;
+      if ((dish.goals || []).indexOf("ovo_lacto") === -1) return false;
+      if (!dish.dietFlags || dish.dietFlags.ovoLactoSuitable !== true) return false;
+      if (dish.dietFlags.containsMeat || dish.dietFlags.containsSeafood) return false;
+      return true;
+    }
+
+    /** 硬筛选：忌口/过敏、蛋奶素白名单、明确用餐方式、厨具、预算上限、餐次 */
     function matchHardFilters(dish, settings, meal) {
       if (meal && dish.meals.indexOf(meal) === -1) return false;
 
@@ -1869,17 +1930,16 @@
 
       var tags = settings.tags || {};
       if (tags.noSpicy && dish.spicy > 0) return false;
-      if (tags.noBeef && (dish.allergens.indexOf("beef") !== -1 || dish.protein === "牛肉")) return false;
+      if (tags.noBeef && (dish.allergens.indexOf("beef") !== -1 || dish.protein === "牛肉" || (dish.dietFlags && dish.dietFlags.containsMeat && dish.protein === "牛肉"))) return false;
       if (tags.noPork && (dish.allergens.indexOf("pork") !== -1 || dish.protein === "猪肉")) return false;
-      if (tags.noSeafood && dish.allergens.indexOf("seafood") !== -1) return false;
+      if (tags.noSeafood && (dish.allergens.indexOf("seafood") !== -1 || (dish.dietFlags && dish.dietFlags.containsSeafood))) return false;
       if (tags.noEgg && dish.allergens.indexOf("egg") !== -1) return false;
       if (tags.noMilk && dish.allergens.indexOf("milk") !== -1) return false;
       if (tags.noNuts && dish.allergens.indexOf("nuts") !== -1) return false;
 
+      // 蛋奶素：硬白名单，绝不靠 protein 推断
       if (settings.goal === "ovo_lacto") {
-        var meat = ["鸡肉", "猪肉", "牛肉", "虾", "鱼"];
-        if (meat.indexOf(dish.protein) !== -1) return false;
-        if (dish.allergens.indexOf("seafood") !== -1 || dish.allergens.indexOf("beef") !== -1 || dish.allergens.indexOf("pork") !== -1) return false;
+        if (!isOvoLactoSuitable(dish)) return false;
       }
 
       return true;
@@ -2004,7 +2064,8 @@
         total += s;
         return s;
       });
-      if (total <= 0) return candidates[Math.floor(rng() * candidates.length)] || null;
+      // 全部为 0 时不随机回退，避免绕过 usedIds / 排除规则
+      if (total <= 0) return null;
       var r = rng() * total;
       for (var i = 0; i < candidates.length; i++) {
         r -= scores[i];
@@ -2074,13 +2135,17 @@
 
           var softFlags = (mealSoft[meal] && mealSoft[meal].softFlags) || defaultSoftFlags();
           var pool = DISHES.filter(function (d) {
-            return matchFilters(d, settings, meal, softFlags) && !exclude[d.id];
+            return matchFilters(d, settings, meal, softFlags) &&
+              !exclude[d.id] &&
+              !usedIds[d.id]; // 构造池时硬排除已选菜，禁止餐内重复
           });
 
-          // 硬条件兜底：只剩硬筛选
+          // 硬条件兜底：只剩硬筛选（仍排除 usedIds）
           if (!pool.length) {
             pool = DISHES.filter(function (d) {
-              return matchHardFilters(d, settings, meal) && !exclude[d.id];
+              return matchHardFilters(d, settings, meal) &&
+                !exclude[d.id] &&
+                !usedIds[d.id];
             });
             if (pool.length) {
               Object.keys(defaultSoftFlags()).forEach(function (k) { allRelaxed[k] = true; });
@@ -2106,7 +2171,8 @@
             return weightDish(d, settings, ctx, rng);
           }, rng);
 
-          if (!picked || usedIds[picked.id]) {
+          // 仅放宽主食/蛋白质重复限制，绝不放宽菜品 ID 重复
+          if (!picked) {
             ctx.usedStaple = {};
             ctx.usedProtein = {};
             picked = pickWeighted(pool, function (d) {
@@ -2114,7 +2180,7 @@
             }, rng);
           }
 
-          if (!picked) {
+          if (!picked || usedIds[picked.id]) {
             empty.push(meal);
             meals[meal] = null;
             return;
@@ -2179,6 +2245,7 @@
       });
       return {
         id: uid(),
+        date: todayKey(),
         ts: Date.now(),
         action: action,
         filters: plan.filters || snapshotFilters(state.settings),
@@ -2203,23 +2270,40 @@
       sessionMealSeen: {}
     };
 
-    /** 仅恢复缓存显示，不写历史 */
+    /** 仅恢复「今天」的缓存显示，不写历史 */
     function restoreLastMenu() {
       var saved = loadCurrentMenu();
-      if (saved && saved.meals && (saved.meals.breakfast || saved.meals.lunch || saved.meals.dinner)) {
+      var isToday = false;
+      if (saved) {
+        if (saved.date) isToday = saved.date === todayKey();
+        else if (saved.ts) isToday = todayKey(new Date(saved.ts)) === todayKey();
+      }
+      if (
+        saved &&
+        isToday &&
+        saved.meals &&
+        (saved.meals.breakfast || saved.meals.lunch || saved.meals.dinner)
+      ) {
+        // 补全 date 字段
+        if (!saved.date) saved.date = todayKey();
         state.menu = saved;
-        // 同步会话防重
         if (saved.signature) state.sessionSeenSigs[saved.signature] = true;
         MEALS.forEach(function (m) {
           if (saved.meals[m]) state.sessionMealSeen[saved.meals[m]] = true;
         });
         renderResults({ animate: false });
         updateArrangeButton();
+        updateEatButton();
         return true;
+      }
+      // 跨日缓存不恢复
+      if (saved && !isToday) {
+        try { localStorage.removeItem(STORAGE.currentMenu); } catch (e) { /* ignore */ }
       }
       state.menu = null;
       renderResults({ animate: false });
       updateArrangeButton();
+      updateEatButton();
       return false;
     }
 
@@ -2252,20 +2336,25 @@
       if (plan.anyEmpty && !plan.meals.breakfast && !plan.meals.lunch && !plan.meals.dinner) {
         // 生成失败：保留上一份菜单，只展示友好提示
         renderNoMatchState();
-        toast("筛选有点严，换个条件试试");
+        toast("候选不足，试试放宽用餐方式或忌口");
         return;
       }
 
       var menu = menuFromPlan(plan, action);
+      var toastMsg = action === "first" ? "三顿饭安排好啦" : "换好一组新的";
+      if (plan.anyEmpty) {
+        toastMsg = "候选有限，部分餐次未能配齐不同菜品";
+      }
       applyMenu(menu, {
         recordHistory: true,
         animate: true,
         collapseFilters: true,
         scrollToResults: true,
-        toastMsg: action === "first" ? "三顿饭安排好啦" : "换好一组新的"
+        toastMsg: toastMsg
       });
       markArranged();
       updateArrangeButton();
+      updateEatButton();
     }
 
     /** 全部换一组：每餐尽量与上一组不同 */
@@ -2397,6 +2486,7 @@
         collapseFilters: opts.collapseFilters,
         scrollToResults: opts.scrollToResults
       });
+      updateEatButton();
       if (opts.toastMsg) toast(opts.toastMsg);
     }
 
@@ -2405,6 +2495,7 @@
       if (!entry || !entry.meals) return;
       var menu = {
         id: entry.id || uid(),
+        date: todayKey(),
         ts: Date.now(),
         action: "restore",
         filters: entry.filters || snapshotFilters(state.settings),
@@ -2425,7 +2516,22 @@
       });
       applyMenu(menu, { recordHistory: false, animate: false, toastMsg: "已恢复这一组" });
       updateArrangeButton();
+      updateEatButton();
       closeHistoryDrawer();
+    }
+
+    function eatenKeyForMenu(menu) {
+      if (!menu || !menu.signature) return "";
+      return (menu.date || todayKey()) + "|" + menu.signature;
+    }
+
+    function hasEatenThisMenu(menu) {
+      var key = eatenKeyForMenu(menu);
+      if (!key) return false;
+      return loadEatenHistory().some(function (h) {
+        var hk = (h.date || todayKey(h.ts ? new Date(h.ts) : new Date())) + "|" + (h.signature || "");
+        return hk === key;
+      });
     }
 
     function markEatenToday() {
@@ -2433,11 +2539,17 @@
         toast("先安排一套菜单吧");
         return;
       }
+      if (hasEatenThisMenu(state.menu)) {
+        toast("今天这套已经记过啦");
+        updateEatButton();
+        return;
+      }
       var list = loadEatenHistory();
       list.push({
         id: uid(),
         ts: Date.now(),
         date: todayKey(),
+        eatenKey: eatenKeyForMenu(state.menu),
         meals: state.menu.meals,
         names: state.menu.names,
         signature: state.menu.signature,
@@ -2445,7 +2557,25 @@
       });
       saveEatenHistory(list);
       toast("记下啦，今天就吃这套");
+      updateEatButton();
       if (state.historyTab === "eaten") renderHistoryDrawerBody();
+    }
+
+    function updateEatButton() {
+      var btn = $("#btnEatToday");
+      if (!btn) return;
+      if (!state.menu) {
+        btn.disabled = false;
+        btn.textContent = "今天就吃这套";
+        return;
+      }
+      if (hasEatenThisMenu(state.menu)) {
+        btn.disabled = true;
+        btn.textContent = "✓ 今天已记录";
+      } else {
+        btn.disabled = false;
+        btn.textContent = "今天就吃这套";
+      }
     }
 
     function updateArrangeButton() {
@@ -2603,6 +2733,10 @@
 
       $("#homeCookExtras").hidden = s.channel !== "home_cook";
       $("#takeoutExtras").hidden = s.channel !== "takeout";
+      var cond = $("#conditionalExtras");
+      if (cond) {
+        cond.hidden = s.channel !== "home_cook" && s.channel !== "takeout";
+      }
       var hint = $("#modeHint");
       if (hint) hint.textContent = SCENE_HINT[s.scene] || "今天已经做了很多决定，吃什么就交给我吧。";
       updateMoreSummary();
