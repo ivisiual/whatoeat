@@ -1,0 +1,121 @@
+/* 今日宜 · responsive */
+@media (max-width: 640px) {
+  .page { width: calc(100% - 24px); }
+}
+
+@media (min-width: 1024px) {
+  .meal-editor-head { cursor: default; pointer-events: none; }
+  .meal-editor-head .chev { display: none; }
+  .meal-editor-body { display: block !important; }
+}
+
+@media (max-width: 767px) {
+  .global-grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 520px) {
+  .meta-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 768px) {
+  .history-drawer, .cuisine-drawer {
+    top: 0; right: 0; bottom: 0; width: min(420px, 92vw);
+    transform: translateX(105%); border-left: 1.5px solid var(--line);
+  }
+  .history-drawer.is-open, .cuisine-drawer.is-open { transform: translateX(0); }
+  .modal-sheet {
+    left: 50%; top: 50%; bottom: auto;
+    width: min(440px, 92vw);
+    max-height: min(86vh, 720px);
+    border-radius: var(--radius-lg);
+    transform: translate(-50%, -46%) scale(0.96);
+    opacity: 0; pointer-events: none;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .modal-sheet.is-open {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1; pointer-events: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .history-drawer, .cuisine-drawer, .modal-sheet {
+    left: 0; right: 0; bottom: 0;
+    height: min(88dvh, 100%); max-height: 100dvh;
+    border-radius: 20px 20px 0 0; transform: translateY(105%);
+    padding-bottom: var(--safe-b);
+  }
+  .history-drawer.is-open, .cuisine-drawer.is-open, .modal-sheet.is-open { transform: translateY(0); }
+  .drawer-handle, .modal-handle {
+    width: 40px; height: 4px; border-radius: 4px; background: var(--line);
+    margin: 0.55rem auto 0.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .meal-card { opacity: 1; transform: none; }
+  .btn:hover, .chip:hover, .preset-card:hover { transform: none; }
+  .history-drawer, .drawer-mask, .modal-sheet, .modal-mask, .cuisine-drawer { transition: none; }
+}
+
+@media (max-width: 1023px) {
+  .meal-list { grid-template-columns: 1fr; }
+  .meal-editors { grid-template-columns: 1fr; }
+  .filter-actions .btn-primary { flex: 1 1 100%; width: 100%; min-width: 0; }
+  .meta-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .meal-editors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meal-editors .meal-editor:last-child { grid-column: 1 / -1; }
+  .meal-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meal-list .meal-card:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 767px) {
+  :root { --sticky-h: 72px; }
+  .header-meta {
+    padding: 0.2rem 0; background: none; border: none; box-shadow: none;
+  }
+  .header-meta .date { font-size: 0.72rem; }
+  .header-meta .greet { display: none; }
+  .brand-text p { display: none; }
+  .filter-actions { display: none; }
+  .sticky-cta { display: block; }
+  .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bottom-actions .btn { min-width: calc(50% - 0.3rem); }
+  .energy-card-inner { grid-template-columns: 1fr; gap: 0; }
+  .energy-full { display: none; }
+  .energy-compact {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.6rem; min-width: 0; width: 100%;
+  }
+  .energy-compact-text {
+    font-size: 0.9rem; font-weight: 700; color: var(--caramel);
+    min-width: 0; overflow-wrap: anywhere;
+  }
+  .energy-actions { flex-direction: row; flex-wrap: wrap; }
+  /* 手机默认只展开一餐 */
+  .meal-editor:not(.is-open) .meal-editor-body { display: none; }
+  .meal-editor.is-open .meal-editor-body { display: block; }
+  .meal-editor-head { pointer-events: auto; cursor: pointer; }
+  .meal-editor-head .chev { display: inline; }
+}
+
+@media (min-width: 768px) {
+  .energy-compact { display: none !important; }
+  .sticky-cta { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  .page { width: calc(100% - 24px); }
+}
+@media (max-width: 480px) {
+  .app-nav-links a { padding: 0.35rem 0.55rem; font-size: 0.74rem; }
+}

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="今日宜 · 宜吃饭 — 替选择困难的你，认真想好今天三顿饭" />
+  <meta name="theme-color" content="#FF6B57" />
+  <title>宜吃饭 · 今日宜</title>
+  <link rel="stylesheet" href="./assets/css/tokens.css" />
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+  <link rel="stylesheet" href="./assets/css/responsive.css" />
+</head>
+<body>
+  <div class="bg-deco" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+
+  <div class="page">
+    <div class="app-nav" id="appNav"></div>
+    <header class="site-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">🍱</div>
+        <div class="brand-text">
+          <h1>饭饭搭子</h1>
+          <p>替选择困难的你，认真想好今天三顿饭</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-meta">
+          <div class="date" id="todayDate">—</div>
+          <div class="greet" id="greeting">你好呀</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-icon" id="btnOpenHistory" aria-haspopup="dialog" aria-label="历史记录" title="历史记录">📋</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel-controls" id="filterPanel" aria-label="筛选与安排">
+        <div class="filter-summary" id="filterSummary">
+          <div class="filter-summary-text" id="filterSummaryText">—</div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnEditFilters">修改</button>
+        </div>
+
+        <div class="filter-full" id="filterFull">
+          <h2 class="panel-title"><span class="dot" aria-hidden="true"></span>今天怎么过？</h2>
+          <div class="preset-scroll" id="presetRow" role="listbox" aria-label="快捷方案"></div>
+          <div class="preset-summary" id="presetSummaryBox">
+            <div class="preset-summary-text" id="presetSummaryText">选择一个快捷方案，或细调三餐</div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnExpandMeals" aria-expanded="true">细调三餐</button>
+          </div>
+
+          <div id="mealEditorsWrap">
+            <span class="section-label">三餐独立设置</span>
+            <div class="meal-editors" id="mealEditors"></div>
+          </div>
+
+          <details class="fold" id="globalDetails">
+            <summary id="globalSummary" aria-expanded="false">详细条件 · 场景 / 菜系 / 忌口</summary>
+            <div class="fold-body">
+              <div class="global-grid">
+                <div>
+                  <span class="filter-label" id="labelScene">场景</span>
+                  <div class="chip-row" role="radiogroup" aria-labelledby="labelScene" id="sceneGroup">
+                    <button type="button" class="chip" data-scene="office" role="radio" aria-checked="true">在公司</button>
+                    <button type="button" class="chip" data-scene="home" role="radio" aria-checked="false">在家</button>
+                    <button type="button" class="chip" data-scene="overtime" role="radio" aria-checked="false">今天加班</button>
+                    <button type="button" class="chip" data-scene="post_workout" role="radio" aria-checked="false">刚运动完</button>
+                  </div>
+                </div>
+                <div>
+                  <span class="filter-label" id="labelGoal">饮食目标</span>
+                  <div class="chip-row" role="radiogroup" aria-labelledby="labelGoal" id="goalGroup">
+                    <button type="button" class="chip" data-goal="casual" role="radio" aria-checked="true">随心吃</button>
+                    <button type="button" class="chip" data-goal="light" role="radio" aria-checked="false">吃轻一点</button>
+                    <button type="button" class="chip" data-goal="high_protein" role="radio" aria-checked="false">高蛋白</button>
+                    <button type="button" class="chip" data-goal="ovo_lacto" role="radio" aria-checked="false">蛋奶素</button>
+                  </div>
+                </div>
+                <div>
+                  <span class="filter-label" id="labelDailyBudget">每日预算</span>
+                  <div class="chip-row" role="radiogroup" aria-labelledby="labelDailyBudget" id="dailyBudgetGroup">
+                    <button type="button" class="chip" data-daily-budget="any" role="radio" aria-checked="true">不限制</button>
+                    <button type="button" class="chip" data-daily-budget="under50" role="radio" aria-checked="false">50 以内</button>
+                    <button type="button" class="chip" data-daily-budget="50to80" role="radio" aria-checked="false">50～80</button>
+                    <button type="button" class="chip" data-daily-budget="over80" role="radio" aria-checked="false">80 以上</button>
+                  </div>
+                </div>
+                <div>
+                  <span class="filter-label" id="labelTaste">口味与口感（可多选）</span>
+                  <div class="chip-row" role="group" aria-labelledby="labelTaste" id="tasteGroup">
+                    <button type="button" class="chip" data-taste="hot" aria-pressed="false">热乎乎</button>
+                    <button type="button" class="chip" data-taste="refreshing" aria-pressed="false">清爽</button>
+                    <button type="button" class="chip" data-taste="spicy" aria-pressed="false">香辣</button>
+                    <button type="button" class="chip" data-taste="sweet_sour" aria-pressed="false">酸甜</button>
+                    <button type="button" class="chip" data-taste="soupy" aria-pressed="false">汤汤水水</button>
+                    <button type="button" class="chip" data-taste="rice_friendly" aria-pressed="false">特别下饭</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top:0.85rem">
+                <span class="filter-label" id="labelCuisine">地方菜系（多选为 OR，默认软偏好）</span>
+                <div class="cuisine-quick" id="cuisineQuick"></div>
+                <div class="cuisine-selected" id="cuisineSelected"></div>
+                <div class="strict-row">
+                  <label><input type="checkbox" id="chkCuisineStrict" /> 只看所选菜系</label>
+                  <span class="form-hint" style="margin:0">关闭时仅提高命中概率；开启后不匹配则提示放宽</span>
+                </div>
+              </div>
+
+              <div style="margin-top:0.85rem">
+                <span class="filter-label" id="labelExplore">熟悉菜 / 探索新菜</span>
+                <div class="chip-row" role="radiogroup" aria-labelledby="labelExplore" id="exploreGroup">
+                  <button type="button" class="chip" data-explore="familiar" role="radio" aria-checked="false">偏熟悉</button>
+                  <button type="button" class="chip" data-explore="balanced" role="radio" aria-checked="true">均衡</button>
+                  <button type="button" class="chip" data-explore="explore" role="radio" aria-checked="false">想探索</button>
+                </div>
+              </div>
+
+              <div class="strict-row" style="margin-top:0.75rem">
+                <label><input type="checkbox" id="chkAvoidRecent" checked /> 最近吃过的不再推荐（候选充足时）</label>
+              </div>
+
+              <details class="fold" id="advancedBox" style="margin-top:0.75rem">
+                <summary aria-expanded="false">忌口与过敏（硬条件，不会自动放宽）</summary>
+                <div class="fold-body">
+                  <div class="chip-row" role="group" aria-label="忌口" id="tagGroup">
+                    <button type="button" class="chip tag-chip" data-tag="noSpicy" aria-pressed="false">不辣</button>
+                    <button type="button" class="chip tag-chip" data-tag="noBeef" aria-pressed="false">不吃牛肉</button>
+                    <button type="button" class="chip tag-chip" data-tag="noPork" aria-pressed="false">不吃猪肉</button>
+                    <button type="button" class="chip tag-chip" data-tag="noSeafood" aria-pressed="false">不吃海鲜</button>
+                    <button type="button" class="chip tag-chip" data-tag="noEgg" aria-pressed="false">不吃鸡蛋</button>
+                    <button type="button" class="chip tag-chip" data-tag="noMilk" aria-pressed="false">不喝牛奶</button>
+                    <button type="button" class="chip tag-chip" data-tag="noNuts" aria-pressed="false">不吃花生坚果</button>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </details>
+
+          <div class="filter-actions">
+            <p class="hint" id="modeHint">点一个快捷方案，再点主按钮，三顿饭马上就好。</p>
+            <button type="button" class="btn btn-primary" id="btnArrange">帮我安排今天三顿饭</button>
+          </div>
+          <div class="side-tools">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnToggleFav" aria-expanded="false">我的收藏</button>
+          </div>
+          <div id="favPanel" hidden style="margin-top:0.7rem">
+            <ul id="favList" style="list-style:none;margin:0;padding:0;display:grid;gap:0.4rem;max-height:180px;overflow:auto"></ul>
+            <p class="hint" id="favEmpty" hidden>还没有收藏。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="energy-card" id="energyCard" aria-label="今日能量">
+        <div class="energy-compact" id="energyCompact">
+          <div class="energy-compact-text" id="energyCompactText">今日 0 kcal · 未设目标</div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnEnergyDetail">查看</button>
+        </div>
+        <div class="energy-full" id="energyFull">
+          <div class="energy-card-inner">
+            <div class="energy-ring-wrap" id="energyRingWrap" hidden>
+              <svg viewBox="0 0 72 72" aria-hidden="true">
+                <circle class="er-bg" cx="36" cy="36" r="28"></circle>
+                <circle class="er-fg" id="energyRingFg" cx="36" cy="36" r="28"
+                  stroke-dasharray="175.93" stroke-dashoffset="175.93"></circle>
+              </svg>
+              <div class="energy-ring-center" id="energyRingLabel">—</div>
+            </div>
+            <div class="energy-main">
+              <p class="energy-title">今日能量 · 吃饭打卡（估算）</p>
+              <div class="energy-nums" id="energyNums">0 <span>kcal</span></div>
+              <p class="energy-hint" id="energyHint">记下来就很好，不需要每顿都完美。</p>
+              <div class="energy-meals" id="energyMealSplit"></div>
+              <div class="energy-settings-row">
+                <label>
+                  <input type="checkbox" id="chkCalTarget" />
+                  设置每日热量目标
+                </label>
+                <label id="targetInputWrap" hidden>
+                  目标
+                  <input type="number" id="inputCalTarget" min="800" max="5000" step="50" value="1800" inputmode="numeric" />
+                  kcal
+                </label>
+              </div>
+            </div>
+            <div class="energy-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnAddFood">+ 补记食物</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnEnergyLogs">今日明细</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel-results" id="resultsPanel" aria-label="今日三餐" aria-live="polite">
+        <div class="results-head">
+          <div>
+            <h2>今日菜单</h2>
+            <p class="results-sub" id="resultsSub">选好条件后点主按钮，三顿饭会在这里揭晓</p>
+          </div>
+        </div>
+        <div id="softenNotice" class="soften-banner" hidden></div>
+        <div id="resultsArea"></div>
+        <div class="bottom-actions" id="bottomActions" hidden>
+          <button type="button" class="btn btn-eaten" id="btnEatSet">今天就吃这套</button>
+          <button type="button" class="btn btn-secondary" id="btnRerollAll">全部换一组</button>
+          <button type="button" class="btn btn-quiet btn-sm" id="btnRerollAllForce" hidden>仍然重新安排全部</button>
+          <button type="button" class="btn btn-secondary" id="btnAddFoodBottom">+ 补记食物</button>
+          <button type="button" class="btn btn-secondary" id="btnFavorite">收藏今天</button>
+          <button type="button" class="btn btn-secondary" id="btnCopy">复制今日菜单</button>
+        </div>
+        <p class="hint" id="rerollLockHint" hidden style="margin-top:0.5rem"></p>
+      </section>
+    </main>
+
+    <div class="sticky-cta" id="stickyCta">
+      <button type="button" class="btn btn-primary" id="btnArrangeSticky">帮我安排今天三顿饭</button>
+    </div>
+
+    <footer class="site-footer">
+      <p>热量为估算范围，仅供参考，不构成营养或医疗建议。</p>
+      <p>
+        自制菜谱优先链接
+        <a href="https://github.com/Anduin2017/HowToCook" target="_blank" rel="noopener noreferrer">HowToCook</a>
+        · 地方菜探索数据见 docs · 数据仅存本机
+      </p>
+    </footer>
+  </div>
+
+  <div class="drawer-mask" id="drawerMask" hidden></div>
+  <aside class="history-drawer" id="historyDrawer" role="dialog" aria-modal="true" aria-labelledby="histTitle" hidden>
+    <div class="drawer-handle" aria-hidden="true"></div>
+    <div class="drawer-head">
+      <h2 id="histTitle">历史记录</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseHistory" aria-label="关闭">关闭</button>
+    </div>
+    <div class="drawer-tabs" role="tablist">
+      <button type="button" class="chip" id="tabRecommend" role="tab" aria-selected="true" aria-pressed="true">推荐历史</button>
+      <button type="button" class="chip" id="tabEaten" role="tab" aria-selected="false" aria-pressed="false">真正吃过</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-foot" id="drawerFoot">
+      <button type="button" class="btn btn-danger btn-sm" id="btnClearHistory" style="width:100%">清空全部推荐历史</button>
+    </div>
+  </aside>
+
+  <div class="drawer-mask" id="cuisineMask" hidden></div>
+  <aside class="cuisine-drawer" id="cuisineDrawer" role="dialog" aria-modal="true" aria-labelledby="cuisineTitle" hidden>
+    <div class="drawer-handle" aria-hidden="true"></div>
+    <div class="drawer-head">
+      <h2 id="cuisineTitle">选择地方菜系</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseCuisine" aria-label="关闭">关闭</button>
+    </div>
+    <div class="drawer-body">
+      <input type="search" class="cuisine-search" id="cuisineSearch" placeholder="搜索菜系，如粤菜、赣菜…" autocomplete="off" />
+      <div id="cuisineFullList"></div>
+    </div>
+    <div class="drawer-foot">
+      <button type="button" class="btn btn-secondary" id="btnCuisineClear">清空</button>
+      <button type="button" class="btn btn-primary" id="btnCuisineDone">完成</button>
+    </div>
+  </aside>
+
+  <div class="modal-mask" id="modalMask" hidden></div>
+
+  <div class="modal-sheet" id="checkinModal" role="dialog" aria-modal="true" aria-labelledby="checkinTitle" hidden>
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-head">
+      <h3 id="checkinTitle">吃了这顿</h3>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseCheckin" aria-label="关闭">关闭</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint" id="checkinLead">这顿大约是多少？可以按实际情况改一改。热量是估算值。</p>
+      <div class="form-field">
+        <label for="checkinName">菜名</label>
+        <input type="text" id="checkinName" maxlength="60" autocomplete="off" />
+      </div>
+      <div class="form-field">
+        <label>分量</label>
+        <div class="portion-row" role="radiogroup" aria-label="分量" id="portionGroup">
+          <button type="button" class="chip" data-portion="0.7" aria-checked="false" role="radio">少量 · 0.7份</button>
+          <button type="button" class="chip" data-portion="1" aria-checked="true" role="radio">标准 · 1份</button>
+          <button type="button" class="chip" data-portion="1.3" aria-checked="false" role="radio">大份 · 1.3份</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="checkinKcal">热量估算（kcal）</label>
+        <input type="number" id="checkinKcal" min="1" max="5000" step="1" inputmode="numeric" />
+        <p class="form-hint">热量是估算值，分量和做法都会影响结果。</p>
+      </div>
+      <input type="hidden" id="checkinMeal" />
+      <input type="hidden" id="checkinDishId" />
+      <input type="hidden" id="checkinLogId" />
+      <input type="hidden" id="checkinBaseKcal" />
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-danger btn-sm" id="btnDeleteCheckin" hidden>删除记录</button>
+      <button type="button" class="btn btn-secondary" id="btnCancelCheckin">取消</button>
+      <button type="button" class="btn btn-primary" id="btnSaveCheckin">保存</button>
+    </div>
+  </div>
+
+  <div class="modal-sheet" id="addFoodModal" role="dialog" aria-modal="true" aria-labelledby="addFoodTitle" hidden>
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-head">
+      <h3 id="addFoodTitle">补记食物</h3>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseAddFood" aria-label="关闭">关闭</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint">记下来就很好，不需要每顿都完美。以下为估算值。</p>
+      <div class="form-field">
+        <label>常见食物（点选填入）</label>
+        <div class="quick-foods" id="quickFoods"></div>
+      </div>
+      <div class="form-field">
+        <label>最近记录</label>
+        <div class="quick-foods" id="recentFoods"></div>
+      </div>
+      <div class="form-field">
+        <label for="addFoodName">食物名称</label>
+        <input type="text" id="addFoodName" maxlength="60" autocomplete="off" />
+      </div>
+      <div class="form-field">
+        <label for="addFoodPortion">分量说明</label>
+        <input type="text" id="addFoodPortion" maxlength="40" placeholder="如：中杯 / 1碗 / 半份" autocomplete="off" />
+      </div>
+      <div class="form-field">
+        <label for="addFoodKcal">大卡（kcal）</label>
+        <input type="number" id="addFoodKcal" min="1" max="5000" step="1" inputmode="numeric" />
+      </div>
+      <div class="form-field">
+        <label for="addFoodMeal">餐次</label>
+        <select id="addFoodMeal">
+          <option value="breakfast">早餐</option>
+          <option value="lunch">午餐</option>
+          <option value="dinner">晚餐</option>
+          <option value="snack">加餐</option>
+          <option value="drink">饮料</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="addFoodTime">时间</label>
+        <input type="time" id="addFoodTime" />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-secondary" id="btnCancelAddFood">取消</button>
+      <button type="button" class="btn btn-primary" id="btnSaveAddFood">保存</button>
+    </div>
+  </div>
+
+  <div class="modal-sheet" id="energyDetailModal" role="dialog" aria-modal="true" aria-labelledby="energyDetailTitle" hidden>
+    <div class="modal-handle" aria-hidden="true"></div>
+    <div class="modal-head">
+      <h3 id="energyDetailTitle">今日摄入明细</h3>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseEnergyDetail" aria-label="关闭">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="energy-nums" id="energyDetailTotal" style="margin-bottom:0.5rem">0 kcal</div>
+      <p class="form-hint" id="energyDetailHint">热量是估算值，仅供参考。</p>
+      <div class="log-list" id="energyLogList"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-secondary" id="btnCloseEnergyDetail2">好的</button>
+      <button type="button" class="btn btn-primary" id="btnAddFoodFromDetail">+ 补记食物</button>
+    </div>
+  </div>
+
+  <div class="toast-host" aria-live="assertive" aria-atomic="true">
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <script src="./js/core/utils.js"></script>
+  <script src="./js/core/storage.js"></script>
+  <script src="./js/core/navigation.js"></script>
+  <script src="./js/core/recommendation.js"></script>
+  <script src="./js/core/daily-plan.js"></script>
+  <script src="./js/core/history.js"></script>
+  <script src="./data/cuisine-data.js"></script>
+  <script src="./data/dishes-data.js"></script>
+  <script src="./js/modules/eat.js"></script>
+  <script>
+    (function () {
+      if (window.TodayYi && TodayYi.navigation) {
+        TodayYi.navigation.renderNav("#appNav");
+      }
+    })();
+  </script>
+</body>
+</html>

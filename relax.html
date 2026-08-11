@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="今日宜 · 轻松小活动推荐" />
+  <meta name="theme-color" content="#FF6B57" />
+  <title>宜娱乐 · 今日宜</title>
+  <link rel="stylesheet" href="./assets/css/tokens.css" />
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+  <link rel="stylesheet" href="./assets/css/home.css" />
+  <link rel="stylesheet" href="./assets/css/modules.css" />
+  <link rel="stylesheet" href="./assets/css/responsive.css" />
+</head>
+<body>
+  <div class="bg-deco" aria-hidden="true">
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+  <div class="page">
+    <div class="app-nav" id="appNav"></div>
+
+    <header class="mod-page-head">
+      <h1>宜娱乐</h1>
+      <p>不接电影/音乐平台 API · 本地轻量活动，做完就能打卡</p>
+    </header>
+
+    <section class="mod-panel">
+      <h2>筛选</h2>
+      <div class="filter-row" aria-label="地点">
+        <button type="button" class="chip" data-lei-place="any" aria-pressed="true">地点不限</button>
+        <button type="button" class="chip" data-lei-place="home" aria-pressed="false">在家</button>
+        <button type="button" class="chip" data-lei-place="office" aria-pressed="false">公司</button>
+        <button type="button" class="chip" data-lei-place="outdoor" aria-pressed="false">户外</button>
+      </div>
+      <div class="filter-row" aria-label="精力">
+        <button type="button" class="chip" data-lei-energy="any" aria-pressed="true">精力不限</button>
+        <button type="button" class="chip" data-lei-energy="low" aria-pressed="false">低</button>
+        <button type="button" class="chip" data-lei-energy="medium" aria-pressed="false">中</button>
+        <button type="button" class="chip" data-lei-energy="high" aria-pressed="false">高</button>
+      </div>
+      <div class="filter-row" aria-label="时长">
+        <button type="button" class="chip" data-lei-dur="any" aria-pressed="true">时长不限</button>
+        <button type="button" class="chip" data-lei-dur="10" aria-pressed="false">≤10 分</button>
+        <button type="button" class="chip" data-lei-dur="15" aria-pressed="false">≤15 分</button>
+        <button type="button" class="chip" data-lei-dur="20" aria-pressed="false">≤20 分</button>
+      </div>
+      <div class="mod-toolbar">
+        <button type="button" class="btn btn-secondary" id="btnLeisureReroll">换一批</button>
+        <span class="hint" id="leisureCount" style="margin:0;align-self:center"></span>
+      </div>
+    </section>
+
+    <div id="leisureSoften" class="soften-banner" hidden></div>
+    <div id="leisureList"></div>
+
+    <footer class="site-footer">
+      <p>活动文案原创 · 无外部平台接口</p>
+    </footer>
+  </div>
+  <div class="toast-host" aria-live="assertive"><div class="toast" id="toast" role="status"></div></div>
+
+  <script src="./js/core/utils.js"></script>
+  <script src="./js/core/storage.js"></script>
+  <script src="./js/core/navigation.js"></script>
+  <script src="./js/core/recommendation.js"></script>
+  <script src="./js/core/history.js"></script>
+  <script src="./js/core/daily-plan.js"></script>
+  <script src="./data/draw-prompts.js"></script>
+  <script src="./data/study-actions.js"></script>
+  <script src="./data/leisure-activities.js"></script>
+  <script src="./data/bead-patterns.js"></script>
+  <script src="./data/activity-pool.js"></script>
+  <script src="./js/modules/leisure.js"></script>
+</body>
+</html>

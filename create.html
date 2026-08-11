@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="今日宜 · 宜画画与拼豆" />
+  <meta name="theme-color" content="#FF6B57" />
+  <title>宜创作 · 今日宜</title>
+  <link rel="stylesheet" href="./assets/css/tokens.css" />
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+  <link rel="stylesheet" href="./assets/css/home.css" />
+  <link rel="stylesheet" href="./assets/css/modules.css" />
+  <link rel="stylesheet" href="./assets/css/responsive.css" />
+</head>
+<body>
+  <div class="bg-deco" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+  </div>
+  <div class="page">
+    <div class="app-nav" id="appNav"></div>
+
+    <header class="mod-page-head">
+      <h1>宜创作</h1>
+      <p>画画灵感 + 拼豆点涂练习（原创图案 · 可导出 PNG）</p>
+    </header>
+
+    <div class="tab-bar" role="tablist" aria-label="创作类型">
+      <button type="button" class="chip" data-tab="draw" role="tab" aria-selected="true" aria-pressed="true">宜画画</button>
+      <button type="button" class="chip" data-tab="bead" role="tab" aria-selected="false" aria-pressed="false">宜拼豆</button>
+    </div>
+
+    <div id="paneDraw">
+      <div class="mod-toolbar">
+        <button type="button" class="btn btn-secondary" id="btnDrawReroll">换一条灵感</button>
+        <span class="hint" id="drawCount" style="margin:0;align-self:center"></span>
+      </div>
+      <div id="drawSoften" class="soften-banner" hidden></div>
+
+      <section class="mod-panel" aria-label="今日画画推荐">
+        <h2>现在可以画</h2>
+        <div id="drawFeatured"></div>
+      </section>
+
+      <section class="mod-panel" aria-label="筛选与素材">
+        <h2>逛逛素材库</h2>
+        <div class="filter-row" aria-label="主题">
+          <button type="button" class="chip" data-draw-filter="all" aria-pressed="true">全部</button>
+          <button type="button" class="chip" data-draw-filter="short" aria-pressed="false">短时</button>
+          <button type="button" class="chip" data-draw-filter="scene" aria-pressed="false">场景</button>
+          <button type="button" class="chip" data-draw-filter="cute" aria-pressed="false">可爱</button>
+          <button type="button" class="chip" data-draw-filter="food" aria-pressed="false">食物</button>
+        </div>
+        <div class="filter-row" aria-label="时长">
+          <button type="button" class="chip" data-draw-dur="any" aria-pressed="true">时长不限</button>
+          <button type="button" class="chip" data-draw-dur="10" aria-pressed="false">≤10 分</button>
+          <button type="button" class="chip" data-draw-dur="15" aria-pressed="false">≤15 分</button>
+          <button type="button" class="chip" data-draw-dur="20" aria-pressed="false">≤20 分</button>
+        </div>
+        <div class="list-scroll" id="drawList"></div>
+      </section>
+    </div>
+
+    <div id="paneBead" hidden>
+      <section class="mod-panel" aria-label="拼豆画板">
+        <div class="bead-layout">
+          <div class="bead-preview">
+            <h2 id="beadTitle">选择图案</h2>
+            <p class="hint" id="beadDesc" style="margin-top:0">从下方列表点选一张原创图案开始。</p>
+            <div class="filter-row" aria-label="显示模式" style="margin-bottom:0.45rem">
+              <button type="button" class="chip" data-bead-mode="practice" aria-pressed="true">练习点涂</button>
+              <button type="button" class="chip" data-bead-mode="guide" aria-pressed="false">只看图纸</button>
+            </div>
+            <p class="hint" id="beadBrushHint" style="margin:0 0 0.45rem">练习模式：选色后点格子摆豆</p>
+            <div class="bead-canvas-wrap" id="beadCanvasWrap">
+              <canvas id="beadCanvas" width="320" height="320" aria-label="拼豆网格，可点涂"></canvas>
+            </div>
+            <div class="bead-palette" id="beadPalette" aria-label="画笔色板"></div>
+            <div class="bead-toolbar">
+              <label class="bead-check">
+                <input type="checkbox" id="chkBeadGrid" checked />
+                网格线
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnBeadReset">清空练习</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnBeadFill">填满图纸</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnBeadExport">导出 PNG</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnBeadFav">收藏</button>
+              <button type="button" class="btn btn-eaten btn-sm" id="btnBeadDone">摆完了 · 打卡</button>
+            </div>
+            <div id="beadStats" class="bead-stats"></div>
+          </div>
+          <div class="bead-side">
+            <h2>图案库</h2>
+            <div class="filter-row" aria-label="尺寸">
+              <button type="button" class="chip" data-bead-size="all" aria-pressed="true">全部</button>
+              <button type="button" class="chip" data-bead-size="8" aria-pressed="false">8×8</button>
+              <button type="button" class="chip" data-bead-size="16" aria-pressed="false">16×16</button>
+            </div>
+            <div class="bead-list" id="beadList"></div>
+            <p class="hint">图案均为本站原创示意，license: original。仅供兴趣参考，非品牌珠子官方图纸。</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="site-footer">
+      <p>画画与拼豆文案/图案为原创测试素材 · license: original</p>
+    </footer>
+  </div>
+  <div class="toast-host" aria-live="assertive"><div class="toast" id="toast" role="status"></div></div>
+
+  <script src="./js/core/utils.js"></script>
+  <script src="./js/core/storage.js"></script>
+  <script src="./js/core/navigation.js"></script>
+  <script src="./js/core/recommendation.js"></script>
+  <script src="./js/core/history.js"></script>
+  <script src="./js/core/daily-plan.js"></script>
+  <script src="./data/draw-prompts.js"></script>
+  <script src="./data/study-actions.js"></script>
+  <script src="./data/leisure-activities.js"></script>
+  <script src="./data/bead-patterns.js"></script>
+  <script src="./data/activity-pool.js"></script>
+  <script src="./js/modules/draw.js"></script>
+  <script src="./js/modules/beads.js"></script>
+</body>
+</html>

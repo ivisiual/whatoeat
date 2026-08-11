@@ -1,0 +1,311 @@
+/* 今日宜 · 模块页通用样式 (create / study / relax) */
+
+.mod-page-head {
+  margin-bottom: clamp(0.65rem, 1.5vw, 1rem);
+}
+.mod-page-head h1 {
+  margin: 0; font-size: var(--title-size); color: var(--caramel);
+}
+.mod-page-head p {
+  margin: 0.25rem 0 0; color: var(--ink-soft); font-size: 0.88rem;
+}
+
+.tab-bar {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+.tab-bar .chip { min-height: var(--touch); }
+
+.mod-panel {
+  background: rgba(255,255,255,0.88);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: var(--panel-padding);
+  margin-bottom: clamp(12px, 2vw, 16px);
+  min-width: 0;
+}
+.mod-panel h2 {
+  margin: 0 0 0.55rem; font-size: 0.95rem; color: var(--caramel);
+}
+
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+.filter-row .chip { min-height: 40px; font-size: 0.78rem; }
+
+.act-card {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.55rem;
+  min-width: 0;
+  box-shadow: var(--shadow-soft);
+}
+.act-card.is-featured {
+  border-top: 4px solid var(--tomato);
+  background: linear-gradient(180deg, #FFFCF3 0%, #fff 40%);
+}
+.act-card .act-top {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: 0.35rem; margin-bottom: 0.3rem;
+}
+.act-card .act-badge {
+  font-size: 0.72rem; font-weight: 800; color: var(--tomato-deep);
+  background: #FDECEA; border-radius: var(--radius-pill);
+  padding: 0.15rem 0.5rem;
+}
+.act-card .act-meta {
+  font-size: 0.74rem; color: var(--caramel-soft); font-weight: 700;
+}
+.act-card h3 {
+  margin: 0 0 0.3rem; font-size: 1.05rem; color: var(--ink); word-break: break-word;
+}
+.act-card .act-desc {
+  margin: 0 0 0.45rem; font-size: 0.86rem; color: var(--ink-soft);
+}
+.act-card .act-first {
+  font-size: 0.84rem; color: var(--ink-soft);
+  background: var(--cream); border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem; margin-bottom: 0.5rem;
+  border: 1.5px dashed var(--line);
+}
+.act-card .act-first strong { color: var(--caramel); font-size: 0.72rem; display: block; }
+.act-card .act-actions {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+}
+.act-card .act-actions .btn { flex: 1 1 auto; min-width: 5.5rem; }
+
+.list-scroll {
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 计时器 */
+.timer-box {
+  text-align: center;
+  padding: 0.5rem 0 0.25rem;
+}
+.timer-display {
+  font-size: clamp(2.4rem, 8vw, 3.2rem);
+  font-weight: 800; color: var(--caramel);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  margin: 0.35rem 0 0.75rem;
+}
+.timer-presets {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.timer-controls {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem;
+}
+.timer-controls .btn { min-width: 6.5rem; }
+.timer-task-label {
+  font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 0.35rem;
+}
+.timer-task-label strong { color: var(--caramel); }
+
+/* 任务池 */
+.task-form {
+  display: grid; gap: 0.55rem; margin-bottom: 0.75rem;
+}
+.task-form .form-row {
+  display: grid; gap: 0.35rem;
+}
+.task-form label {
+  font-size: 0.76rem; font-weight: 700; color: var(--caramel-soft);
+}
+.task-form input[type="text"],
+.task-form input[type="number"],
+.task-form select,
+.task-form textarea {
+  width: 100%; max-width: 100%;
+  min-height: var(--touch);
+  font-size: 16px;
+  padding: 0.55rem 0.7rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.task-form textarea { min-height: 72px; resize: vertical; }
+.task-item {
+  display: flex; flex-wrap: wrap; align-items: flex-start;
+  justify-content: space-between; gap: 0.45rem;
+  background: #fff; border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm); padding: 0.6rem 0.7rem;
+  margin-bottom: 0.45rem;
+}
+.task-item .task-body { min-width: 0; flex: 1; }
+.task-item .task-body strong {
+  display: block; color: var(--caramel); font-size: 0.9rem;
+}
+.task-item .task-body span {
+  font-size: 0.76rem; color: var(--ink-soft);
+}
+.task-item.is-done { opacity: 0.7; }
+.task-item.is-done strong { text-decoration: line-through; }
+.task-ops { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.focus-log {
+  font-size: 0.82rem; color: var(--ink-soft);
+  border-top: 1px dashed var(--line); padding-top: 0.55rem; margin-top: 0.55rem;
+}
+.focus-log li { margin-bottom: 0.25rem; }
+
+.bead-placeholder {
+  text-align: center; padding: 1.2rem 0.5rem; color: var(--ink-soft);
+}
+.bead-placeholder .big { font-size: 2.5rem; margin-bottom: 0.4rem; }
+
+.mod-toolbar {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.65rem;
+}
+
+/* 拼豆 */
+.bead-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+  gap: clamp(12px, 2vw, 18px);
+  min-width: 0;
+  align-items: start;
+}
+.bead-preview, .bead-side { min-width: 0; }
+.bead-canvas-wrap {
+  display: flex; justify-content: center; align-items: center;
+  width: 100%;
+  padding: 0.65rem;
+  background: linear-gradient(180deg, #FFFCF3, #fff);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  margin: 0.55rem 0 0.65rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+#beadCanvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  touch-action: manipulation;
+}
+.bead-toolbar {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+  margin-bottom: 0.65rem;
+}
+.bead-toolbar .btn { min-height: var(--touch); }
+.bead-check {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.8rem; color: var(--ink-soft); font-weight: 600;
+  min-height: var(--touch); padding-right: 0.35rem;
+}
+.bead-check input { width: 18px; height: 18px; accent-color: var(--tomato); }
+.bead-stats {
+  background: var(--cream);
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.75rem;
+}
+.bead-stat-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+  font-size: 0.82rem; color: var(--ink-soft);
+  margin-bottom: 0.55rem;
+}
+.bead-stat-summary b { color: var(--caramel); }
+.bead-swatches { display: grid; gap: 0.35rem; }
+.bead-swatch-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;
+  font-size: 0.8rem; color: var(--ink-soft);
+}
+.bead-swatch {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--line); flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+}
+.bead-hex {
+  font-size: 0.72rem; background: #fff; border-radius: 6px;
+  padding: 0.1rem 0.35rem; color: var(--caramel);
+}
+.bead-list {
+  display: grid; gap: 0.45rem;
+  max-height: min(56vh, 480px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 0.45rem;
+  padding-right: 2px;
+}
+.bead-thumb {
+  appearance: none; width: 100%; text-align: left; cursor: pointer;
+  border: 1.5px solid var(--line); background: #fff;
+  border-radius: var(--radius-sm); padding: 0.6rem 0.7rem;
+  min-height: var(--touch);
+  box-shadow: var(--shadow-soft);
+  transition: border-color var(--transition), background var(--transition);
+}
+.bead-thumb:hover { border-color: var(--caramel-soft); }
+.bead-thumb.is-active,
+.bead-thumb[aria-pressed="true"] {
+  border-color: var(--tomato);
+  background: linear-gradient(135deg, #FFF6E8, #fff);
+  box-shadow: 0 0 0 2px rgba(255,107,87,0.12);
+}
+.bead-thumb-title {
+  display: block; font-weight: 800; color: var(--caramel); font-size: 0.88rem;
+}
+.bead-thumb-meta {
+  display: block; margin-top: 0.15rem; font-size: 0.74rem; color: var(--ink-soft);
+}
+
+.bead-palette {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  margin: 0 0 0.55rem;
+}
+.bead-brush {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  min-height: 40px; padding: 0.3rem 0.6rem;
+  border: 1.5px solid var(--line); border-radius: var(--radius-pill);
+  background: #fff; color: var(--caramel); font-size: 0.78rem; font-weight: 700;
+}
+.bead-brush.is-active {
+  border-color: var(--tomato);
+  box-shadow: 0 0 0 2px rgba(255,107,87,0.15);
+  background: #FFF6E8;
+}
+.bead-brush-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid rgba(61,43,34,0.2);
+  flex-shrink: 0;
+}
+.bead-progress-bar {
+  height: 8px; border-radius: 999px;
+  background: rgba(110,75,58,0.1);
+  overflow: hidden; margin: 0 0 0.55rem;
+}
+.bead-progress-fill {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--yolk), var(--avocado));
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+#beadCanvas { cursor: crosshair; }
+
+
+@media (max-width: 767px) {
+  .list-scroll { max-height: min(48vh, 380px); }
+  .bead-layout { grid-template-columns: 1fr; }
+  .bead-list { max-height: min(40vh, 320px); }
+  .bead-stat-summary { grid-template-columns: 1fr 1fr; }
+  .bead-toolbar .btn { flex: 1 1 calc(50% - 0.25rem); min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bead-thumb { transition: none; }
+}

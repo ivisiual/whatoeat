@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FF6B57" />
+  <title>我的 · 今日宜</title>
+  <link rel="stylesheet" href="./assets/css/tokens.css" />
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+  <link rel="stylesheet" href="./assets/css/home.css" />
+  <link rel="stylesheet" href="./assets/css/responsive.css" />
+  <style>
+    .prof-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .prof-panel {
+      background: rgba(255,255,255,0.88);
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: var(--panel-padding);
+      min-width: 0;
+    }
+    .prof-item {
+      background: #fff; border: 1.5px solid var(--line);
+      border-radius: var(--radius-md); padding: 0.65rem 0.75rem;
+      margin-bottom: 0.5rem; min-width: 0;
+    }
+    .prof-item .t { font-weight: 800; color: var(--caramel); font-size: 0.9rem; }
+    .prof-item .m { font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.2rem; }
+    .prof-item .ops { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+  </style>
+</head>
+<body>
+  <div class="bg-deco" aria-hidden="true">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+  </div>
+  <div class="page">
+    <div class="app-nav" id="appNav"></div>
+    <header class="home-hero">
+      <h1>我的</h1>
+      <p class="home-sub">完成记录与收藏 · 数据只在本机</p>
+    </header>
+
+    <div class="prof-tabs" role="tablist">
+      <button type="button" class="chip" id="tabHist" role="tab" aria-selected="true" aria-pressed="true">完成历史</button>
+      <button type="button" class="chip" id="tabFav" role="tab" aria-selected="false" aria-pressed="false">收藏</button>
+    </div>
+
+    <section class="prof-panel" id="panelHist" aria-label="完成历史"></section>
+    <section class="prof-panel" id="panelFav" aria-label="收藏" hidden></section>
+
+    <p class="hint" style="margin-top:1rem">
+      饭饭搭子的推荐历史与热量仍在
+      <a href="./eat.html">宜吃饭</a>
+      页面内查看；不会被这里覆盖。
+    </p>
+    <footer class="site-footer"><p>今日宜 · 我的</p></footer>
+  </div>
+  <div class="toast-host" aria-live="assertive"><div class="toast" id="toast" role="status"></div></div>
+
+  <script src="./js/core/utils.js"></script>
+  <script src="./js/core/storage.js"></script>
+  <script src="./js/core/navigation.js"></script>
+  <script src="./js/core/history.js"></script>
+  <script>
+    (function () {
+      var u = TodayYi.utils;
+      var H = TodayYi.history;
+      TodayYi.navigation.renderNav("#appNav");
+
+      function showTab(which) {
+        var hist = which === "hist";
+        document.getElementById("panelHist").hidden = !hist;
+        document.getElementById("panelFav").hidden = hist;
+        document.getElementById("tabHist").setAttribute("aria-selected", hist ? "true" : "false");
+        document.getElementById("tabHist").setAttribute("aria-pressed", hist ? "true" : "false");
+        document.getElementById("tabFav").setAttribute("aria-selected", !hist ? "true" : "false");
+        document.getElementById("tabFav").setAttribute("aria-pressed", !hist ? "true" : "false");
+      }
+
+      function renderHist() {
+        var list = (TodayYi.storage.getActivityHistory() || []).slice().reverse();
+        var box = document.getElementById("panelHist");
+        if (!list.length) {
+          box.innerHTML = '<p class="hint">还没有完成记录。回首页点「完成」，或在宜吃饭打卡三餐。</p>';
+          return;
+        }
+        box.innerHTML = list.map(function (h) {
+          return (
+            '<article class="prof-item">' +
+              '<div class="t">' + u.escapeHtml(h.title || h.activityId) + "</div>" +
+              '<div class="m">' + u.escapeHtml(H.categoryLabel(h.category)) +
+              " · " + u.escapeHtml(h.date || "") +
+              " · " + u.escapeHtml(u.formatRelativeTime(h.completedAt || Date.now())) +
+              (h.duration != null ? " · " + h.duration + " 分钟" : "") +
+              "</div>" +
+              '<div class="ops">' +
+                '<button type="button" class="btn btn-ghost btn-sm btn-del-h" data-id="' +
+                u.escapeHtml(h.id) + '">删除</button>' +
+              "</div></article>"
+          );
+        }).join("");
+        Array.prototype.slice.call(box.querySelectorAll(".btn-del-h")).forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (!confirm("删除这条记录？")) return;
+            H.removeHistory(btn.getAttribute("data-id"));
+            renderHist();
+            u.toast("已删除");
+          });
+        });
+      }
+
+      function renderFav() {
+        var list = H.listFavorites().slice().reverse();
+        var box = document.getElementById("panelFav");
+        if (!list.length) {
+          box.innerHTML = '<p class="hint">还没有收藏。在首页给主签或顺手建议点「收藏」。</p>';
+          return;
+        }
+        box.innerHTML = list.map(function (f) {
+          return (
+            '<article class="prof-item">' +
+              '<div class="t">' + u.escapeHtml(f.title || f.activityId) + "</div>" +
+              '<div class="m">' + u.escapeHtml(H.categoryLabel(f.category)) +
+              (f.description ? " · " + u.escapeHtml(f.description) : "") +
+              "</div>" +
+              '<div class="ops">' +
+                '<button type="button" class="btn btn-ghost btn-sm btn-unfav" data-id="' +
+                u.escapeHtml(f.activityId) + '">取消收藏</button>' +
+              "</div></article>"
+          );
+        }).join("");
+        Array.prototype.slice.call(box.querySelectorAll(".btn-unfav")).forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            H.toggleFavorite({ activityId: btn.getAttribute("data-id") });
+            renderFav();
+            u.toast("已取消收藏");
+          });
+        });
+      }
+
+      document.getElementById("tabHist").addEventListener("click", function () {
+        showTab("hist");
+        renderHist();
+      });
+      document.getElementById("tabFav").addEventListener("click", function () {
+        showTab("fav");
+        renderFav();
+      });
+      renderHist();
+    })();
+  </script>
+</body>
+</html>
