@@ -15,6 +15,7 @@
     favorites: "todayyi_favorites_v1",
     studyTasks: "todayyi_study_tasks_v1",
     focusLogs: "todayyi_focus_logs_v1",
+    focusTimer: "todayyi_focus_timer_v1",
     settings: "todayyi_settings_v1",
     beadWorks: "todayyi_bead_works_v1",
     // 饭饭搭子（保持原键，禁止改名）

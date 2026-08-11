@@ -8,6 +8,7 @@
   var $all = u.$all;
   var KEY_TASKS = TY.storage.KEYS.studyTasks;
   var KEY_FOCUS = TY.storage.KEYS.focusLogs;
+  var KEY_TIMER = TY.storage.KEYS.focusTimer || "todayyi_focus_timer_v1";
 
   var timer = {
     totalSec: 25 * 60,
@@ -16,8 +17,33 @@
     tickId: null,
     taskId: null,
     taskTitle: "",
-    startedAt: null
+    startedAt: null,
+    /** 墙钟结束时间，避免后台 tab 被节流导致计时不准/丢失 */
+    endsAt: null
   };
+
+  function persistTimer() {
+    try {
+      TY.storage.set(KEY_TIMER, {
+        date: u.todayKey(),
+        totalSec: timer.totalSec,
+        leftSec: timer.leftSec,
+        running: !!timer.running,
+        endsAt: timer.endsAt,
+        taskId: timer.taskId,
+        taskTitle: timer.taskTitle || ""
+      });
+    } catch (e) {}
+  }
+
+  function clearPersistedTimer() {
+    try { TY.storage.set(KEY_TIMER, null); } catch (e) {}
+  }
+
+  function syncLeftFromEndsAt() {
+    if (!timer.endsAt) return;
+    timer.leftSec = Math.max(0, Math.ceil((timer.endsAt - Date.now()) / 1000));
+  }
 
   function loadTasks() {
     var list = TY.storage.get(KEY_TASKS, []);
@@ -74,6 +100,8 @@
   function onTimerComplete() {
     stopTick();
     timer.leftSec = 0;
+    timer.endsAt = null;
+    clearPersistedTimer();
     updateTimerUI();
     var mins = Math.round(timer.totalSec / 60);
     var logs = loadFocus();
@@ -89,13 +117,22 @@
     });
     saveFocus(logs);
 
-    TY.storage.recordActivityCompletion({
-      activityId: timer.taskId || ("focus-" + mins + "m-" + u.todayKey()),
-      category: "study",
-      title: (timer.taskTitle || "专注") + " · " + mins + " 分钟",
-      duration: mins,
-      sourcePage: "study"
-    });
+    if (TY.dailyPlan && TY.dailyPlan.markCompleted) {
+      TY.dailyPlan.markCompleted(timer.taskId || ("focus-" + mins + "m-" + u.todayKey()), {
+        category: "study",
+        title: (timer.taskTitle || "专注") + " · " + mins + " 分钟",
+        duration: mins,
+        sourcePage: "study"
+      });
+    } else {
+      TY.storage.recordActivityCompletion({
+        activityId: timer.taskId || ("focus-" + mins + "m-" + u.todayKey()),
+        category: "study",
+        title: (timer.taskTitle || "专注") + " · " + mins + " 分钟",
+        duration: mins,
+        sourcePage: "study"
+      });
+    }
 
     if (timer.taskId) {
       var tasks = loadTasks();
@@ -114,47 +151,67 @@
     renderActions();
   }
 
+  function tickFromWallClock() {
+    if (!timer.running || !timer.endsAt) return;
+    syncLeftFromEndsAt();
+    updateTimerUI();
+    persistTimer();
+    if (timer.leftSec <= 0) onTimerComplete();
+  }
+
+  function startTickLoop() {
+    if (timer.tickId) clearInterval(timer.tickId);
+    // 250ms 轮询 + 墙钟校正，后台被节流回来也能对齐
+    timer.tickId = setInterval(tickFromWallClock, 250);
+  }
+
   function startTimer() {
     if (timer.leftSec <= 0) timer.leftSec = timer.totalSec;
     if (timer.running) return;
     timer.running = true;
     timer.startedAt = Date.now();
+    timer.endsAt = Date.now() + timer.leftSec * 1000;
+    persistTimer();
     updateTimerUI();
-    timer.tickId = setInterval(function () {
-      timer.leftSec -= 1;
-      if (timer.leftSec <= 0) {
-        onTimerComplete();
-        return;
-      }
-      updateTimerUI();
-    }, 1000);
+    startTickLoop();
   }
 
   function pauseTimer() {
+    if (timer.running && timer.endsAt) {
+      syncLeftFromEndsAt();
+    }
     stopTick();
+    timer.endsAt = null;
+    persistTimer();
     updateTimerUI();
   }
 
   function resetTimer() {
     stopTick();
+    timer.endsAt = null;
     timer.leftSec = timer.totalSec;
+    persistTimer();
     updateTimerUI();
   }
 
   function setPreset(min) {
     stopTick();
+    timer.endsAt = null;
     timer.totalSec = min * 60;
     timer.leftSec = timer.totalSec;
     $all("[data-timer-min]").forEach(function (b) {
       b.setAttribute("aria-pressed", Number(b.getAttribute("data-timer-min")) === min ? "true" : "false");
     });
+    persistTimer();
     updateTimerUI();
   }
 
   function bindTaskToTimer(task) {
     if (!task) return;
     // 换绑任务时必须先停表，避免进行中的计时改记到新任务
+    if (timer.running && timer.endsAt) syncLeftFromEndsAt();
     stopTick();
+    timer.endsAt = null;
     timer.taskId = task.id;
     timer.taskTitle = task.title;
     var mins = Number(task.minutes);
@@ -168,8 +225,42 @@
       var m = Number(b.getAttribute("data-timer-min"));
       b.setAttribute("aria-pressed", m === mins ? "true" : "false");
     });
+    persistTimer();
     updateTimerUI();
     u.toast("已绑定「" + task.title + "」· " + mins + " 分钟");
+  }
+
+  function restoreTimer() {
+    var s = TY.storage.get(KEY_TIMER, null);
+    if (!s || typeof s !== "object" || s.date !== u.todayKey()) {
+      clearPersistedTimer();
+      return;
+    }
+    timer.totalSec = Number(s.totalSec) || timer.totalSec;
+    timer.taskId = s.taskId || null;
+    timer.taskTitle = s.taskTitle || "";
+    if (s.running && s.endsAt) {
+      timer.endsAt = Number(s.endsAt);
+      timer.running = true;
+      syncLeftFromEndsAt();
+      if (timer.leftSec <= 0) {
+        onTimerComplete();
+      } else {
+        updateTimerUI();
+        startTickLoop();
+      }
+    } else {
+      timer.running = false;
+      timer.endsAt = null;
+      timer.leftSec = Number(s.leftSec);
+      if (!isFinite(timer.leftSec) || timer.leftSec < 0) timer.leftSec = timer.totalSec;
+      updateTimerUI();
+    }
+    // 同步预设高亮
+    var mins = Math.round(timer.totalSec / 60);
+    $all("[data-timer-min]").forEach(function (b) {
+      b.setAttribute("aria-pressed", Number(b.getAttribute("data-timer-min")) === mins ? "true" : "false");
+    });
   }
 
   function renderTasks() {
@@ -385,13 +476,29 @@
     if (addBtn) addBtn.addEventListener("click", addTaskFromForm);
 
     setPreset(25);
+    restoreTimer(); // 恢复今日未完成的后台计时（可能跨页返回）
     renderTasks();
     renderFocus();
     renderActions();
     updateTimerUI();
 
+    // 回到前台时用墙钟对齐，避免 setInterval 被节流
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && timer.running) {
+        tickFromWallClock();
+      }
+    });
+    window.addEventListener("pageshow", function () {
+      if (timer.running) tickFromWallClock();
+      else restoreTimer();
+    });
     window.addEventListener("beforeunload", function () {
-      if (timer.running) pauseTimer();
+      if (timer.running && timer.endsAt) {
+        syncLeftFromEndsAt();
+        persistTimer(); // 保持 running，返回 study 页可续跑
+      } else {
+        persistTimer();
+      }
     });
   }
 

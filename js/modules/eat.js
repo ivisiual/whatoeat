@@ -877,11 +877,13 @@
     });
     return o;
   }
-  function findRecommendLog(meal, dishId) {
+  function findRecommendLog(meal, dishId, menuId) {
     if (!dishId) return null;
     var list = getTodayLogs();
     for (var i = 0; i < list.length; i++) {
       if (list[i].source === "recommend" && list[i].meal === meal && list[i].dishId === dishId) {
+        // 指定菜单时优先匹配 menuId，避免跨菜单误判；无 menuId 字段则兼容旧数据
+        if (menuId && list[i].menuId && list[i].menuId !== menuId) continue;
         return list[i];
       }
     }
@@ -918,13 +920,14 @@
   }
   function isMealCheckedIn(meal) {
     if (!state.menu || !state.menu.meals || !state.menu.meals[meal]) return false;
-    return !!findRecommendLog(meal, state.menu.meals[meal]);
+    return !!findRecommendLog(meal, state.menu.meals[meal], state.menu.id) ||
+      !!findRecommendLog(meal, state.menu.meals[meal]);
   }
   function getLockedMealsFromLogs() {
     var locked = {};
     if (!state.menu || !state.menu.meals) return locked;
     MEALS.forEach(function (m) {
-      if (state.menu.meals[m] && findRecommendLog(m, state.menu.meals[m])) {
+      if (state.menu.meals[m] && isMealCheckedIn(m)) {
         locked[m] = state.menu.meals[m];
       }
     });
@@ -1740,7 +1743,7 @@
     });
   }
 
-  /** 今天就吃这套：写入吃过历史 + 预计热量（幂等） */
+  /** 今天就吃这套：写入吃过历史 + 预计热量（幂等，防连点） */
   function markEatenToday() {
     if (!state.menu || !state.menu.meals) {
       toast("先安排一套菜单吧");
@@ -1754,6 +1757,16 @@
       updateEatButton();
       return;
     }
+
+    // 先占位锁，防止连点双写
+    var map2 = loadMenuCheckins();
+    if (map2[ckey]) {
+      toast("这套餐已经打过卡啦");
+      updateEatButton();
+      return;
+    }
+    map2[ckey] = { ts: Date.now(), menuId: menu.id, signature: menu.signature };
+    saveMenuCheckins(map2);
 
     // 写入吃过历史（与推荐历史分开）
     if (!hasEatenThisMenu(menu)) {
@@ -1777,6 +1790,8 @@
     MEALS.forEach(function (m) {
       var id = menu.meals[m];
       if (!id) return;
+      if (findRecommendLog(m, id, menu.id)) return;
+      // 同餐同菜已记过（无 menuId 的旧数据）也不再写
       if (findRecommendLog(m, id)) return;
       var dish = dishById(id);
       if (!dish) return;
@@ -1795,13 +1810,16 @@
       wrote++;
     });
 
-    var map2 = loadMenuCheckins();
-    map2[ckey] = { ts: Date.now(), menuId: menu.id, signature: menu.signature };
-    saveMenuCheckins(map2);
-
-    // 同步到今日宜统一历史（不改 fanfan 键）
+    // 同步到今日宜统一历史（不改 fanfan 键；markCompleted 内幂等）
     try {
-      if (window.TodayYi && window.TodayYi.storage) {
+      if (window.TodayYi && window.TodayYi.dailyPlan) {
+        window.TodayYi.dailyPlan.markCompleted(menu.id || menu.signature || "eat-today", {
+          category: "eat",
+          title: "今天的三餐",
+          duration: null,
+          sourcePage: "eat"
+        });
+      } else if (window.TodayYi && window.TodayYi.storage) {
         window.TodayYi.storage.recordActivityCompletion({
           category: "eat",
           activityId: menu.id || menu.signature,
@@ -1810,9 +1828,6 @@
           sourcePage: "eat",
           date: todayKey()
         });
-      }
-      if (window.TodayYi && window.TodayYi.dailyPlan) {
-        window.TodayYi.dailyPlan.markCompleted(menu.id || menu.signature || "eat-today");
       }
     } catch (eSync) {}
     toast(wrote ? "记下啦，预计热量已写入今日打卡" : "这套餐已经打过卡啦");

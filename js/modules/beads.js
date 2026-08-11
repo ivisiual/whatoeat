@@ -610,23 +610,30 @@
   function completeCurrent() {
     var pat = byId(state.currentId);
     if (!pat) return;
-    var prog = progressVsGuide(pat.pattern, state.work || pat.pattern);
-    TY.storage.recordActivityCompletion({
-      activityId: pat.id,
-      category: "beads",
-      title: pat.title + (prog.ratio >= 0.95 ? " · 高还原" : ""),
-      duration: pat.duration,
-      sourcePage: "create"
-    });
-    if (TY.dailyPlan && TY.dailyPlan.loadTodayPlan) {
-      try {
-        var plan = TY.dailyPlan.loadTodayPlan();
-        if (plan.completedIds.indexOf(pat.id) === -1) {
-          plan.completedIds.push(pat.id);
-          TY.dailyPlan.saveTodayPlan(plan);
-        }
-      } catch (e) {}
+    if (isDoneToday(pat.id)) {
+      u.toast("今天已经打过卡啦");
+      renderDetail(pat);
+      return;
     }
+    var prog = progressVsGuide(pat.pattern, state.work || pat.pattern);
+    var title = pat.title + (prog.ratio >= 0.95 ? " · 高还原" : "");
+    if (TY.dailyPlan && TY.dailyPlan.markCompleted) {
+      TY.dailyPlan.markCompleted(pat.id, {
+        category: "beads",
+        title: title,
+        duration: pat.duration,
+        sourcePage: "create"
+      });
+    } else {
+      TY.storage.recordActivityCompletion({
+        activityId: pat.id,
+        category: "beads",
+        title: title,
+        duration: pat.duration,
+        sourcePage: "create"
+      });
+    }
+    saveCurrentWork();
     var msg =
       prog.ratio >= 0.95
         ? "还原度 " + Math.round(prog.ratio * 100) + "%，漂亮！"

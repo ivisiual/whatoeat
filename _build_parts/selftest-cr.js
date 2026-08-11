@@ -261,19 +261,45 @@ console.log("\n=== P3 娱乐补抽 exclude ===");
 
 console.log("\n=== P2 计时绑定逻辑（内联复刻） ===");
 {
-  // 验证 minutes clamp 与任意时长
-  function bindLogic(task, prevRunning) {
-    var stop = prevRunning ? true : false;
+  function bindLogic(task) {
     var mins = Number(task.minutes);
     if (!isFinite(mins) || mins < 1) mins = 25;
     if (mins > 180) mins = 180;
     mins = Math.round(mins);
-    return { stopped: stop || true, totalSec: mins * 60 };
+    return { totalSec: mins * 60, endsAt: Date.now() + mins * 60 * 1000 };
   }
-  const r30 = bindLogic({ minutes: 30 }, true);
-  assert(r30.stopped && r30.totalSec === 1800, "30 分钟 -> 1800 秒且停表");
-  const r90 = bindLogic({ minutes: 90 }, false);
+  const r30 = bindLogic({ minutes: 30 });
+  assert(r30.totalSec === 1800, "30 分钟 -> 1800 秒");
+  const r90 = bindLogic({ minutes: 90 });
   assert(r90.totalSec === 5400, "90 分钟生效");
+  // 墙钟：模拟后台过去 5 秒
+  const endsAt = Date.now() + 10000;
+  const left = Math.max(0, Math.ceil((endsAt - (Date.now() + 5000)) / 1000));
+  assert(left <= 5 && left >= 4, "墙钟校正约 5 秒: " + left);
+}
+
+console.log("\n=== 三餐打卡幂等（menuCheckin 先锁） ===");
+{
+  const key = "2026-08-11|menu_abc";
+  const map = {};
+  // 模拟先占位
+  map[key] = { ts: Date.now(), menuId: "menu_abc" };
+  assert(!!map[key], "占位后第二次应直接命中");
+  // 同 dish 不同 menu 可用 menuId 区分
+  const logs = [
+    { source: "recommend", meal: "lunch", dishId: "d1", menuId: "menu_abc" }
+  ];
+  function find(meal, dishId, menuId) {
+    for (var i = 0; i < logs.length; i++) {
+      if (logs[i].source === "recommend" && logs[i].meal === meal && logs[i].dishId === dishId) {
+        if (menuId && logs[i].menuId && logs[i].menuId !== menuId) continue;
+        return logs[i];
+      }
+    }
+    return null;
+  }
+  assert(!!find("lunch", "d1", "menu_abc"), "同菜单命中");
+  assert(!find("lunch", "d1", "menu_xyz"), "不同菜单不命中（有 menuId 时）");
 }
 
 console.log("\n=== 语法 ===");
