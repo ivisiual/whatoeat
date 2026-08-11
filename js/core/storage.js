@@ -33,6 +33,35 @@
     }
   };
 
+  var BACKUP_APP = "todayyi";
+  var BACKUP_VERSION = 1;
+  var MAX_BACKUP_BYTES = 5 * 1024 * 1024;
+
+  /** 仅允许导入导出本应用使用的 localStorage 键。 */
+  function backupKeys() {
+    return [
+      KEYS.profile,
+      KEYS.dailyPlan,
+      KEYS.activityHistory,
+      KEYS.favorites,
+      KEYS.studyTasks,
+      KEYS.focusLogs,
+      KEYS.focusTimer,
+      KEYS.settings,
+      KEYS.beadWorks,
+      KEYS.fanfan.settings,
+      KEYS.fanfan.settingsLegacy,
+      KEYS.fanfan.currentMenu,
+      KEYS.fanfan.recommendHistory,
+      KEYS.fanfan.eatenHistory,
+      KEYS.fanfan.favorites,
+      KEYS.fanfan.hasArranged,
+      KEYS.fanfan.calorieLogs,
+      KEYS.fanfan.calorieSettings,
+      KEYS.fanfan.menuCheckin
+    ];
+  }
+
   function get(key, fallback) {
     try {
       return u.safeJsonParse(localStorage.getItem(key), fallback);
@@ -111,6 +140,87 @@
     set(KEYS.dailyPlan, plan);
   }
 
+  function createBackup() {
+    var data = {};
+    backupKeys().forEach(function (key) {
+      var raw = getRaw(key);
+      if (raw !== null) data[key] = raw;
+    });
+    return {
+      app: BACKUP_APP,
+      version: BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      data: data
+    };
+  }
+
+  function validateBackup(backup) {
+    if (!backup || typeof backup !== "object" || Array.isArray(backup)) {
+      throw new Error("备份文件格式不正确");
+    }
+    if (backup.app !== BACKUP_APP) {
+      throw new Error("这不是今日宜的数据备份");
+    }
+    if (backup.version !== BACKUP_VERSION) {
+      throw new Error("暂不支持这个备份版本");
+    }
+    if (!backup.data || typeof backup.data !== "object" || Array.isArray(backup.data)) {
+      throw new Error("备份文件缺少数据内容");
+    }
+
+    var allowed = {};
+    backupKeys().forEach(function (key) { allowed[key] = true; });
+    var recognized = [];
+    var totalBytes = 0;
+    Object.keys(backup.data).forEach(function (key) {
+      if (!allowed[key]) return;
+      var raw = backup.data[key];
+      if (typeof raw !== "string") {
+        throw new Error("备份中的数据类型不正确：" + key);
+      }
+      totalBytes += raw.length;
+      if (totalBytes > MAX_BACKUP_BYTES) {
+        throw new Error("备份数据过大，无法导入");
+      }
+      // hasArranged 是 YYYY-MM-DD 原始字符串，其余键均保存 JSON。
+      if (key !== KEYS.fanfan.hasArranged) {
+        try { JSON.parse(raw); } catch (e) {
+          throw new Error("备份中的数据已损坏：" + key);
+        }
+      }
+      recognized.push(key);
+    });
+    if (!recognized.length) throw new Error("备份中没有可导入的数据");
+    return recognized;
+  }
+
+  /**
+   * 用备份完整替换当前应用数据。全部校验通过后才写入；写入失败会回滚。
+   */
+  function restoreBackup(backup) {
+    var importedKeys = validateBackup(backup);
+    var allKeys = backupKeys();
+    var before = {};
+    allKeys.forEach(function (key) { before[key] = getRaw(key); });
+
+    try {
+      allKeys.forEach(function (key) {
+        if (Object.prototype.hasOwnProperty.call(backup.data, key)) {
+          if (!setRaw(key, backup.data[key])) throw new Error("浏览器存储空间不足");
+        } else {
+          remove(key);
+        }
+      });
+    } catch (err) {
+      allKeys.forEach(function (key) {
+        if (before[key] === null) remove(key);
+        else setRaw(key, before[key]);
+      });
+      throw err;
+    }
+    return { ok: true, imported: importedKeys.length };
+  }
+
   TY.storage = {
     KEYS: KEYS,
     get: get,
@@ -122,6 +232,10 @@
     recordActivityCompletion: recordActivityCompletion,
     getActivityHistory: getActivityHistory,
     getTodayPlan: getTodayPlan,
-    setTodayPlan: setTodayPlan
+    setTodayPlan: setTodayPlan,
+    backupKeys: backupKeys,
+    createBackup: createBackup,
+    validateBackup: validateBackup,
+    restoreBackup: restoreBackup
   };
 })(window);

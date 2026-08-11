@@ -28,6 +28,13 @@
     .prof-item .t { font-weight: 800; color: var(--caramel); font-size: 0.9rem; }
     .prof-item .m { font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.2rem; }
     .prof-item .ops { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+    .backup-panel { margin-top: 1rem; }
+    .backup-panel h2 { margin: 0 0 0.3rem; font-size: 1rem; color: var(--caramel); }
+    .backup-panel p { margin: 0; }
+    .backup-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .backup-actions .btn { flex: 1 1 10rem; }
+    .backup-note { margin-top: 0.65rem !important; font-size: 0.75rem; color: var(--ink-soft); }
+    #backupStatus { min-height: 1.4em; margin-top: 0.55rem; font-size: 0.78rem; color: var(--avocado-deep); }
   </style>
 </head>
 <body>
@@ -39,7 +46,7 @@
     <div class="app-nav" id="appNav"></div>
     <header class="home-hero">
       <h1>我的</h1>
-      <p class="home-sub">完成记录与收藏 · 数据只在本机</p>
+      <p class="home-sub">完成记录与收藏 · 数据保存在当前浏览器，可随时备份</p>
     </header>
 
     <div class="prof-tabs" role="tablist">
@@ -50,10 +57,22 @@
     <section class="prof-panel" id="panelHist" aria-label="完成历史"></section>
     <section class="prof-panel" id="panelFav" aria-label="收藏" hidden></section>
 
+    <section class="prof-panel backup-panel" aria-labelledby="backupTitle">
+      <h2 id="backupTitle">数据备份</h2>
+      <p class="hint">换设备或清理浏览器前，先导出一份 JSON 备份。导入会用备份内容替换当前数据。</p>
+      <div class="backup-actions">
+        <button type="button" class="btn btn-secondary" id="btnExportData">导出我的数据</button>
+        <button type="button" class="btn btn-ghost" id="btnImportData">从备份导入</button>
+      </div>
+      <input type="file" id="backupFile" accept="application/json,.json" hidden />
+      <p id="backupStatus" role="status" aria-live="polite"></p>
+      <p class="backup-note">备份包含收藏、完成历史、学习任务、拼豆进度、三餐与热量记录，请妥善保管。</p>
+    </section>
+
     <p class="hint" style="margin-top:1rem">
       饭饭搭子的推荐历史与热量仍在
       <a href="./eat.html">宜吃饭</a>
-      页面内查看；不会被这里覆盖。
+      页面内查看；导出备份时会一起包含。
     </p>
     <footer class="site-footer"><p>今日宜 · 我的</p></footer>
   </div>
@@ -140,6 +159,67 @@
         });
       }
 
+      function setBackupStatus(message) {
+        document.getElementById("backupStatus").textContent = message || "";
+      }
+
+      function exportData() {
+        try {
+          var backup = TodayYi.storage.createBackup();
+          var text = JSON.stringify(backup, null, 2);
+          var blob = new Blob([text], { type: "application/json;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement("a");
+          link.href = url;
+          link.download = "todayyi-backup-" + u.todayKey() + ".json";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+          setBackupStatus("已导出 " + Object.keys(backup.data).length + " 项本地数据");
+          u.toast("备份已下载");
+        } catch (err) {
+          setBackupStatus("导出失败：" + (err.message || "未知错误"));
+          u.toast("导出失败");
+        }
+      }
+
+      function importFile(file) {
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          setBackupStatus("导入失败：文件不能超过 5 MB");
+          u.toast("备份文件过大");
+          return;
+        }
+        var reader = new FileReader();
+        reader.onerror = function () {
+          setBackupStatus("导入失败：无法读取这个文件");
+          u.toast("无法读取备份");
+        };
+        reader.onload = function () {
+          try {
+            var backup = JSON.parse(String(reader.result || ""));
+            var keys = TodayYi.storage.validateBackup(backup);
+            var dateText = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString("zh-CN") : "未知时间";
+            if (!confirm(
+              "将导入 " + keys.length + " 项数据（备份时间：" + dateText + "）。\n\n" +
+              "当前浏览器中的今日宜数据会被替换，是否继续？"
+            )) {
+              setBackupStatus("已取消导入，当前数据没有变化");
+              return;
+            }
+            var result = TodayYi.storage.restoreBackup(backup);
+            setBackupStatus("成功导入 " + result.imported + " 项数据，页面即将刷新");
+            u.toast("导入成功");
+            setTimeout(function () { location.reload(); }, 700);
+          } catch (err) {
+            setBackupStatus("导入失败：" + (err.message || "文件格式错误"));
+            u.toast("导入失败");
+          }
+        };
+        reader.readAsText(file, "utf-8");
+      }
+
       document.getElementById("tabHist").addEventListener("click", function () {
         showTab("hist");
         renderHist();
@@ -147,6 +227,15 @@
       document.getElementById("tabFav").addEventListener("click", function () {
         showTab("fav");
         renderFav();
+      });
+      document.getElementById("btnExportData").addEventListener("click", exportData);
+      document.getElementById("btnImportData").addEventListener("click", function () {
+        var input = document.getElementById("backupFile");
+        input.value = "";
+        input.click();
+      });
+      document.getElementById("backupFile").addEventListener("change", function () {
+        importFile(this.files && this.files[0]);
       });
       renderHist();
     })();
