@@ -243,6 +243,11 @@
   }
 
   function isCompleted(activityId) {
+    if (!activityId) return false;
+    // 统一以活动历史为准，避免删除历史后 completedIds 残留
+    if (TY.history && TY.history.isCompletedToday) {
+      return TY.history.isCompletedToday(activityId);
+    }
     var plan = loadTodayPlan();
     return (plan.completedIds || []).indexOf(activityId) !== -1;
   }

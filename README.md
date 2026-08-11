@@ -50,6 +50,7 @@ node _build_parts/selftest-r1.js
 node _build_parts/selftest-r2.js
 node _build_parts/selftest-r3.js
 node _build_parts/selftest-r4.js
+node _build_parts/selftest-cr.js   # CR 交互回归
 ```
 
 要求：全部零失败。

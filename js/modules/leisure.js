@@ -21,27 +21,27 @@
 
   function completeAct(act) {
     if (!act) return;
-    TY.storage.recordActivityCompletion({
-      activityId: act.id,
-      category: "leisure",
-      title: act.title,
-      duration: act.duration,
-      sourcePage: "relax"
-    });
-    if (TY.dailyPlan) {
-      try {
-        var plan = TY.dailyPlan.loadTodayPlan();
-        if (plan.completedIds.indexOf(act.id) === -1) {
-          plan.completedIds.push(act.id);
-          TY.dailyPlan.saveTodayPlan(plan);
-        }
-      } catch (e) {}
+    if (TY.dailyPlan && TY.dailyPlan.markCompleted) {
+      TY.dailyPlan.markCompleted(act.id, {
+        category: "leisure",
+        title: act.title,
+        duration: act.duration,
+        sourcePage: "relax"
+      });
+    } else {
+      TY.storage.recordActivityCompletion({
+        activityId: act.id,
+        category: "leisure",
+        title: act.title,
+        duration: act.duration,
+        sourcePage: "relax"
+      });
     }
     u.toast("轻松一下，已记下");
     render();
   }
 
-  function recommendOne(extraSeed) {
+  function recommendOne(extraSeed, excludeIds) {
     var opts = {
       pool: pool(),
       categories: ["leisure"],
@@ -50,7 +50,8 @@
       energy: state.energy === "any" ? null : state.energy,
       place: state.place === "any" ? null : state.place,
       moods: ["relax"],
-      exploreMode: "balanced"
+      exploreMode: "balanced",
+      excludeIds: excludeIds || {}
     };
     return TY.recommendation.recommendActivities(opts);
   }
@@ -59,9 +60,12 @@
     var exclude = {};
     var items = [];
     var relaxed = [];
-    for (var i = 0; i < 5; i++) {
-      var r = recommendOne(i);
-      if (r.item && !exclude[r.item.id]) {
+    var target = 5;
+    // 多抽几轮直到满 5 条或候选耗尽
+    for (var i = 0; i < 20 && items.length < target; i++) {
+      var r = recommendOne(i, exclude);
+      if (!r.item) break;
+      if (!exclude[r.item.id]) {
         items.push(r.item);
         exclude[r.item.id] = true;
       }
@@ -71,9 +75,11 @@
   }
 
   function cardHtml(act, featured) {
-    var done = (TY.storage.getActivityHistory() || []).some(function (h) {
-      return h.date === u.todayKey() && h.activityId === act.id;
-    });
+    var done = TY.history && TY.history.isCompletedToday
+      ? TY.history.isCompletedToday(act.id)
+      : (TY.storage.getActivityHistory() || []).some(function (h) {
+          return h.date === u.todayKey() && h.activityId === act.id;
+        });
     var fav = TY.history.isFavorite(act.id);
     return (
       '<article class="act-card' + (featured ? " is-featured" : "") + '">' +

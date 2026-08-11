@@ -21,23 +21,30 @@
     return (TY.activityPool || []).filter(function (a) { return a.category === "draw"; });
   }
 
+  function isDoneToday(id) {
+    if (TY.history && TY.history.isCompletedToday) return TY.history.isCompletedToday(id);
+    return (TY.storage.getActivityHistory() || []).some(function (h) {
+      return h && h.date === u.todayKey() && h.activityId === id && h.status === "completed";
+    });
+  }
+
   function completeAct(act) {
     if (!act) return;
-    TY.storage.recordActivityCompletion({
-      activityId: act.id,
-      category: "draw",
-      title: act.title,
-      duration: act.duration,
-      sourcePage: "create"
-    });
     if (TY.dailyPlan && TY.dailyPlan.markCompleted) {
-      try {
-        var plan = TY.dailyPlan.loadTodayPlan();
-        if (plan.completedIds.indexOf(act.id) === -1) {
-          plan.completedIds.push(act.id);
-          TY.dailyPlan.saveTodayPlan(plan);
-        }
-      } catch (e) {}
+      TY.dailyPlan.markCompleted(act.id, {
+        category: "draw",
+        title: act.title,
+        duration: act.duration,
+        sourcePage: "create"
+      });
+    } else {
+      TY.storage.recordActivityCompletion({
+        activityId: act.id,
+        category: "draw",
+        title: act.title,
+        duration: act.duration,
+        sourcePage: "create"
+      });
     }
     u.toast("画画完成记下啦");
     render();
@@ -87,9 +94,7 @@
 
   function cardHtml(act, featured) {
     if (!act) return "";
-    var done = (TY.storage.getActivityHistory() || []).some(function (h) {
-      return h.date === u.todayKey() && h.activityId === act.id && h.status === "completed";
-    });
+    var done = isDoneToday(act.id);
     var fav = TY.history.isFavorite(act.id);
     return (
       '<article class="act-card' + (featured ? " is-featured" : "") + (done ? " is-done" : "") + '">' +
@@ -166,13 +171,17 @@
       b.setAttribute("aria-selected", on ? "true" : "false");
       b.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    // 从 hidden 切到拼豆时需重绘 Canvas（宽度才正确）
+    // 从 hidden 切到拼豆时需重绘；selectPattern 会恢复 worksByPattern，不丢练习
     if (tab === "bead" && TY.beads && TY.beads.selectPattern && TY.beads.patterns) {
       setTimeout(function () {
+        var st = TY.beads.getState && TY.beads.getState();
         var list = TY.beads.patterns();
-        var id = (list[0] && list[0].id) || null;
-        var active = document.querySelector(".bead-thumb.is-active");
-        if (active) id = active.getAttribute("data-bead-id") || id;
+        var id = (st && st.currentId) || null;
+        if (!id) {
+          var active = document.querySelector(".bead-thumb.is-active");
+          if (active) id = active.getAttribute("data-bead-id");
+        }
+        if (!id && list[0]) id = list[0].id;
         if (id) TY.beads.selectPattern(id);
       }, 30);
     }

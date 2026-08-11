@@ -9,19 +9,44 @@
   var $ = u.$;
   var $all = u.$all;
 
+  var WORKS_KEY = (TY.storage && TY.storage.KEYS && TY.storage.KEYS.beadWorks) || "todayyi_bead_works_v1";
+
   var state = {
     currentId: null,
     showGrid: true,
     cellPx: 0,
     /** 练习层：可点涂修改的二维数组 */
     work: null,
+    /** patternId -> work grid，跨标签/切换保留 */
+    worksByPattern: loadWorksMap(),
     /** 当前画笔色号；0 = 橡皮 */
     brush: 1,
-    /** practice: 点涂；guide: 只看图纸 */
+    /** practice: 点涂；guide: 只看图纸（不影响 work） */
     mode: "practice",
     sizeFilter: "all",
     painting: false
   };
+
+  function loadWorksMap() {
+    try {
+      if (TY.storage) {
+        var raw = TY.storage.get(WORKS_KEY, {});
+        return raw && typeof raw === "object" ? raw : {};
+      }
+    } catch (e) {}
+    return {};
+  }
+  function persistWorks() {
+    try {
+      if (TY.storage) TY.storage.set(WORKS_KEY, state.worksByPattern || {});
+    } catch (e) {}
+  }
+  function saveCurrentWork() {
+    if (state.currentId && state.work) {
+      state.worksByPattern[state.currentId] = cloneGrid(state.work);
+      persistWorks();
+    }
+  }
 
   function patterns() {
     return root.TODAYYI_BEAD_PATTERNS || [];
@@ -57,26 +82,34 @@
   }
 
   function progressVsGuide(guide, work) {
-    if (!guide || !work) return { placed: 0, correct: 0, target: 0, ratio: 0 };
+    if (!guide || !work) {
+      return { placed: 0, correct: 0, target: 0, missing: 0, wrong: 0, ratio: 0 };
+    }
     var placed = 0;
     var correct = 0;
     var target = 0;
+    var missing = 0;
+    var wrong = 0;
     for (var r = 0; r < guide.length; r++) {
       for (var c = 0; c < guide[r].length; c++) {
         var g = guide[r][c] || 0;
         var w = work[r] ? work[r][c] || 0 : 0;
         if (g) target++;
-        if (w) {
-          placed++;
-          if (w === g) correct++;
-        }
+        if (w) placed++;
+        if (g && w === g) correct++;
+        else if (g && !w) missing++;
+        else if (w && w !== g) wrong++; // 颜色错或空位多放
       }
     }
+    // 多放/错放会拉低还原度：correct / max(target, placed)
+    var denom = Math.max(target, placed, 1);
     return {
       placed: placed,
       correct: correct,
       target: target,
-      ratio: target ? correct / target : 0
+      missing: missing,
+      wrong: wrong,
+      ratio: correct / denom
     };
   }
 
@@ -307,10 +340,12 @@
       "</b> 颗</div>" +
       "<div>正确 <b>" +
       prog.correct +
-      "</b> / " +
-      prog.target +
+      "</b> · 漏 " +
+      prog.missing +
+      " · 错 " +
+      prog.wrong +
       "</div>" +
-      "<div>进度 <b>" +
+      "<div>还原 <b>" +
       pct +
       "%</b></div>" +
       "</div>" +
@@ -373,6 +408,7 @@
   }
 
   function isDoneToday(id) {
+    if (TY.history && TY.history.isCompletedToday) return TY.history.isCompletedToday(id);
     return (TY.storage.getActivityHistory() || []).some(function (h) {
       return h && h.date === u.todayKey() && h.activityId === id && h.status === "completed";
     });
@@ -409,17 +445,41 @@
     });
   }
 
-  function selectPattern(id) {
+  function emptyLike(grid) {
+    return grid.map(function (row) {
+      return row.map(function () {
+        return 0;
+      });
+    });
+  }
+
+  /**
+   * 选择图案：保留/恢复 worksByPattern，不因模式切换改写作品
+   * opts.forceNewEmpty: 强制空板（仅「清空练习」）
+   */
+  function selectPattern(id, opts) {
+    opts = opts || {};
     var pat = byId(id);
     if (!pat) return;
+    // 先保存当前作品
+    saveCurrentWork();
     state.currentId = id;
-    state.work = cloneGrid(pat.pattern);
-    // 练习模式默认从空白开始更有练习意义
-    if (state.mode === "practice") {
+    if (opts.forceNewEmpty) {
       state.work = emptyLike(pat.pattern);
+      state.worksByPattern[id] = cloneGrid(state.work);
+      persistWorks();
+    } else if (state.worksByPattern[id]) {
+      state.work = cloneGrid(state.worksByPattern[id]);
+    } else {
+      // 首次进入：空练习板（与图纸分离）
+      state.work = emptyLike(pat.pattern);
+      state.worksByPattern[id] = cloneGrid(state.work);
+      persistWorks();
     }
     var codes = codesInPattern(pat);
-    state.brush = codes[0] || 1;
+    if (codes.indexOf(state.brush) === -1 && state.brush !== 0) {
+      state.brush = codes[0] || 1;
+    }
     renderList();
     renderDetail(pat);
     renderPalette(pat);
@@ -429,23 +489,17 @@
     if (hint) {
       hint.textContent =
         state.mode === "guide"
-          ? "图纸模式：只读预览"
+          ? "图纸模式：只读预览（不改你的练习板）"
           : "画笔：色号 " + state.brush + " · 按住可拖动画";
     }
-  }
-
-  function emptyLike(grid) {
-    return grid.map(function (row) {
-      return row.map(function () {
-        return 0;
-      });
-    });
   }
 
   function resetWork() {
     var pat = byId(state.currentId);
     if (!pat) return;
     state.work = emptyLike(pat.pattern);
+    state.worksByPattern[state.currentId] = cloneGrid(state.work);
+    persistWorks();
     renderStats(pat);
     drawBoard(pat);
     u.toast("已清空练习板");
@@ -455,6 +509,8 @@
     var pat = byId(state.currentId);
     if (!pat) return;
     state.work = cloneGrid(pat.pattern);
+    state.worksByPattern[state.currentId] = cloneGrid(state.work);
+    persistWorks();
     renderStats(pat);
     drawBoard(pat);
     u.toast("已填满图纸（对照用）");
@@ -486,6 +542,7 @@
     if (state.mode !== "practice" || !state.work) return;
     if (!state.work[r]) return;
     state.work[r][c] = state.brush;
+    saveCurrentWork();
     var pat = byId(state.currentId);
     if (pat) {
       drawBoard(pat);
@@ -616,10 +673,13 @@
 
     $all("[data-bead-mode]").forEach(function (btn) {
       on(btn, "click", function () {
+        // 模式只影响渲染，不改写 worksByPattern / work
         state.mode = btn.getAttribute("data-bead-mode") || "practice";
         var pat = byId(state.currentId);
-        if (pat && state.mode === "practice" && !state.work) {
-          state.work = emptyLike(pat.pattern);
+        if (pat && !state.work) {
+          state.work = state.worksByPattern[state.currentId]
+            ? cloneGrid(state.worksByPattern[state.currentId])
+            : emptyLike(pat.pattern);
         }
         renderDetail(pat);
         if (pat) {
@@ -630,7 +690,7 @@
         if (hint) {
           hint.textContent =
             state.mode === "guide"
-              ? "图纸模式：只读预览，可导出对照"
+              ? "图纸模式：只读预览（不改你的练习板）"
               : "练习模式：选色后点格子摆豆";
         }
       });

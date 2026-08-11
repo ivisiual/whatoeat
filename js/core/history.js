@@ -62,11 +62,59 @@
   }
 
   function removeHistory(id) {
-    var list = (storage.getActivityHistory() || []).filter(function (h) {
-      return h && h.id !== id;
+    return removeCompletion({ historyId: id });
+  }
+
+  /**
+   * 统一撤销完成：同步活动历史 + 今日计划 completedIds
+   * opts: { historyId } 或 { activityId, date? }
+   */
+  function removeCompletion(opts) {
+    opts = opts || {};
+    var list = storage.getActivityHistory() || [];
+    var removed = [];
+    var kept = [];
+    list.forEach(function (h) {
+      if (!h) return;
+      var hit = false;
+      if (opts.historyId && h.id === opts.historyId) hit = true;
+      if (opts.activityId && h.activityId === opts.activityId) {
+        if (!opts.date || h.date === opts.date) hit = true;
+      }
+      if (hit) removed.push(h);
+      else kept.push(h);
     });
-    storage.set(storage.KEYS.activityHistory, list);
-    return list;
+    storage.set(storage.KEYS.activityHistory, kept);
+
+    // 同步今日计划 completedIds（以及匹配到的其它日期：仅当明确 date 或删除的是今日）
+    if (TY.dailyPlan && TY.dailyPlan.loadTodayPlan && removed.length) {
+      try {
+        var plan = TY.dailyPlan.loadTodayPlan();
+        var today = u.todayKey();
+        var idsToDrop = {};
+        removed.forEach(function (h) {
+          if (h.activityId && (!h.date || h.date === today || h.date === plan.date)) {
+            idsToDrop[h.activityId] = true;
+          }
+        });
+        if (plan.completedIds && plan.completedIds.length) {
+          plan.completedIds = plan.completedIds.filter(function (id) {
+            return !idsToDrop[id];
+          });
+          TY.dailyPlan.saveTodayPlan(plan);
+        }
+      } catch (e) {}
+    }
+    return { list: kept, removed: removed };
+  }
+
+  /** 完成态统一读历史（今日），避免与 completedIds 漂移 */
+  function isCompletedToday(activityId) {
+    if (!activityId) return false;
+    var day = u.todayKey();
+    return (storage.getActivityHistory() || []).some(function (h) {
+      return h && h.activityId === activityId && h.date === day && h.status === "completed";
+    });
   }
 
   function categoryLabel(cat) {
@@ -89,6 +137,8 @@
     isFavorite: isFavorite,
     toggleFavorite: toggleFavorite,
     removeHistory: removeHistory,
+    removeCompletion: removeCompletion,
+    isCompletedToday: isCompletedToday,
     categoryLabel: categoryLabel
   };
 })(window);

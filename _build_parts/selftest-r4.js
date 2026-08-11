@@ -175,10 +175,16 @@ console.log("\n=== 豆子统计与进度 ===");
   assert(prog0.correct === 0 && prog0.target === st2.total, "空板进度 0");
   const progFull = TY.beads.progressVsGuide(heart.pattern, heart.pattern);
   assert(progFull.ratio === 1, "满板还原 100%");
-  const clone = TY.beads.cloneGrid(heart.pattern);
-  clone[0][0] = 9;
-  const progBad = TY.beads.progressVsGuide(heart.pattern, clone);
-  assert(progBad.ratio < 1 || heart.pattern[0][0] === 0, "改错一格可检测");
+  // 多放错放不能 100%
+  const over = heart.pattern.map((row) => row.slice());
+  // 找一个应为空的格子多放
+  outer: for (let r = 0; r < over.length; r++) {
+    for (let c = 0; c < over[r].length; c++) {
+      if (!over[r][c]) { over[r][c] = 9; break outer; }
+    }
+  }
+  const progOver = TY.beads.progressVsGuide(heart.pattern, over);
+  assert(progOver.ratio < 1, "多放后还原度 < 100%: " + progOver.ratio);
 }
 
 console.log("\n=== API ===");

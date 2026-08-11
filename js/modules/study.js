@@ -152,13 +152,24 @@
   }
 
   function bindTaskToTimer(task) {
+    if (!task) return;
+    // 换绑任务时必须先停表，避免进行中的计时改记到新任务
+    stopTick();
     timer.taskId = task.id;
     timer.taskTitle = task.title;
-    if (task.minutes && [15, 25, 45].indexOf(Number(task.minutes)) !== -1) {
-      setPreset(Number(task.minutes));
-    }
+    var mins = Number(task.minutes);
+    if (!isFinite(mins) || mins < 1) mins = 25;
+    if (mins > 180) mins = 180;
+    mins = Math.round(mins);
+    timer.totalSec = mins * 60;
+    timer.leftSec = timer.totalSec;
+    // 预设芯片仅高亮标准档；自定义时长全部取消选中
+    $all("[data-timer-min]").forEach(function (b) {
+      var m = Number(b.getAttribute("data-timer-min"));
+      b.setAttribute("aria-pressed", m === mins ? "true" : "false");
+    });
     updateTimerUI();
-    u.toast("已绑定到计时器");
+    u.toast("已绑定「" + task.title + "」· " + mins + " 分钟");
   }
 
   function renderTasks() {

@@ -2683,9 +2683,26 @@
       if (focusable) focusable.focus();
     });
   }
+  /** 补记食物编辑态（避免 data-edit-id 残留覆盖旧记录） */
+  var editingLogId = null;
+  function clearAddFoodEditState() {
+    editingLogId = null;
+    var modal = $("#addFoodModal");
+    if (modal) modal.removeAttribute("data-edit-id");
+  }
+  function setAddFoodEditState(logId) {
+    editingLogId = logId || null;
+    var modal = $("#addFoodModal");
+    if (!modal) return;
+    if (logId) modal.setAttribute("data-edit-id", logId);
+    else modal.removeAttribute("data-edit-id");
+  }
+
   function closeModal(id) {
     var mask = $("#modalMask");
-    var sheet = id ? $("#" + id) : (openModalId ? $("#" + openModalId) : null);
+    var closingId = id || openModalId;
+    var sheet = closingId ? $("#" + closingId) : null;
+    if (closingId === "addFoodModal") clearAddFoodEditState();
     if (sheet) {
       sheet.classList.remove("is-open");
       setTimeout(function () { sheet.hidden = true; }, 280);
@@ -2706,6 +2723,7 @@
     modalFocusReturn = null;
   }
   function closeAllModals() {
+    clearAddFoodEditState();
     $all(".modal-sheet").forEach(function (s) {
       s.classList.remove("is-open");
       s.hidden = true;
@@ -2824,16 +2842,30 @@
       });
     });
   }
-  function openAddFoodDialog() {
+  function openAddFoodDialog(opts) {
+    opts = opts || {};
     fillQuickFoods();
     fillRecentFoods();
+    // 新增模式必须清编辑态；编辑模式由 openEditFoodDialog 设置
+    if (!opts.editId) clearAddFoodEditState();
     $("#addFoodName").value = "";
     $("#addFoodPortion").value = "";
     $("#addFoodKcal").value = "";
     $("#addFoodMeal").value = "snack";
     var now = new Date();
     $("#addFoodTime").value = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    var title = $("#addFoodTitle");
+    if (title) title.textContent = opts.editId ? "修改记录" : "补记食物";
     openModal("addFoodModal");
+  }
+  function openEditFoodDialog(log) {
+    if (!log) return;
+    openAddFoodDialog({ editId: log.id });
+    setAddFoodEditState(log.id);
+    $("#addFoodName").value = log.name || "";
+    $("#addFoodPortion").value = log.portionLabel || "";
+    $("#addFoodKcal").value = String(log.kcal || "");
+    $("#addFoodMeal").value = log.meal || "snack";
   }
   function saveAddFood() {
     var name = ($("#addFoodName").value || "").trim();
@@ -2850,13 +2882,13 @@
       d.setHours(parseInt(parts[0], 10) || 0, parseInt(parts[1], 10) || 0, 0, 0);
       ts = d.getTime();
     }
-    var editId = $("#addFoodModal").getAttribute("data-edit-id");
+    var editId = editingLogId || $("#addFoodModal").getAttribute("data-edit-id");
     upsertLog({
       id: editId || uid(), meal: meal, name: name, dishId: null,
       portion: 1, portionLabel: portion || "自定义", kcal: kcal,
       source: "custom", ts: ts
     });
-    $("#addFoodModal").removeAttribute("data-edit-id");
+    clearAddFoodEditState();
     closeModal("addFoodModal");
     toast(editId ? "已更新记录" : ("已补记 · " + name));
     if (state.menu) renderResults({ animate: false });
@@ -2891,14 +2923,7 @@
           if (log.source === "recommend" && log.dishId) {
             openCheckinDialog(log.meal, dishById(log.dishId) || { name: log.name, calories: { default: log.kcal } }, log);
           } else {
-            openAddFoodDialog();
-            setTimeout(function () {
-              $("#addFoodName").value = log.name;
-              $("#addFoodPortion").value = log.portionLabel || "";
-              $("#addFoodKcal").value = String(log.kcal);
-              $("#addFoodMeal").value = log.meal || "snack";
-              $("#addFoodModal").setAttribute("data-edit-id", log.id);
-            }, 50);
+            openEditFoodDialog(log);
           }
         });
       });
